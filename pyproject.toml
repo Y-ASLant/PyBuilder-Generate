@@ -1,0 +1,19 @@
+[project]
+name = "PyBuild-Generate"
+version = "1.0.0"
+description = "跨平台 Python 编译脚本生成器 TUI 版本"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "textual>=0.47.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "loguru>=0.7.3",
+    "pyinstaller>=6.17.0",
+    "pyyaml>=6.0.3",
+    "pyfiglet>=1.0.4",
+    "nuitka>=2.8.6",
+]
+
+[project.scripts]
+pybuild-tui = "src.__main__:main"

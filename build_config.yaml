@@ -1,0 +1,28 @@
+# build_config.yaml - 简化版
+
+# 项目基本信息
+project_name: MyApp
+version: 1.0.0
+entry_file: main.py
+icon_file: App.ico
+
+# 构建配置
+build_tool: pyinstaller      # pyinstaller | nuitka
+output_dir: dist
+
+# 打包选项
+standalone: true
+onefile: true
+show_console: false
+
+# 插件
+plugins:
+  - pyqt5
+  - requests
+
+exclude_packages:
+  - pytest
+  - tkinter
+
+# 优化
+jobs: 4

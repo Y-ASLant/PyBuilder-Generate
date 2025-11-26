@@ -1,0 +1,3 @@
+theme: textual-dark
+terminal_min_cols: 112
+terminal_min_rows: 32
