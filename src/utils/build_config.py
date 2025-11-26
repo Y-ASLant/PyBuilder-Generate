@@ -5,6 +5,7 @@
 
 from pathlib import Path
 from typing import Dict, Any
+import platform
 
 
 # 默认构建配置
@@ -106,6 +107,16 @@ def load_build_config(project_dir: Path) -> Dict[str, Any]:
                                 config[key] = value
     except Exception as e:
         print(f"加载构建配置失败: {e}")
+
+    # 根据操作系统设置默认编译器（如果未指定）
+    if not config.get("compiler"):
+        os_type = platform.system()
+        if os_type == "Windows":
+            config["compiler"] = "msvc"
+        elif os_type == "Linux":
+            config["compiler"] = "gcc"
+        else:  # macOS
+            config["compiler"] = "clang"
 
     return config
 

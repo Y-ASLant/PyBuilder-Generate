@@ -3,6 +3,7 @@
 用于选择Nuitka编译器
 """
 
+import platform
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Horizontal
@@ -12,6 +13,31 @@ from textual.binding import Binding
 
 class CompilerSelectorScreen(Screen):
     """编译器选择屏幕"""
+
+    # 各平台编译器选项
+    COMPILERS = {
+        "Windows": [
+            ("MSVC - Visual Studio (推荐)", "msvc"),
+            ("MinGW64 - GCC for Windows", "mingw64"),
+            ("Clang-cl - Clang (MSVC兼容)", "clang-cl"),
+            ("Clang - LLVM (跨平台通用)", "clang"),
+        ],
+        "Linux": [
+            ("GCC - 系统默认 (推荐)", "gcc"),
+            ("Clang - LLVM编译器 (跨平台通用)", "clang"),
+        ],
+        "Darwin": [  # macOS
+            ("Clang - Xcode默认 (推荐, 跨平台通用)", "clang"),
+            ("GCC - GNU编译器", "gcc"),
+        ],
+    }
+
+    # 默认编译器
+    DEFAULT_COMPILER = {
+        "Windows": "msvc",
+        "Linux": "gcc",
+        "Darwin": "clang",
+    }
 
     CSS = """
     CompilerSelectorScreen {
@@ -69,33 +95,39 @@ class CompilerSelectorScreen(Screen):
         Binding("enter", "confirm", "确认"),
     ]
 
-    def __init__(self, selected_compiler: str = "msvc"):
+    def __init__(self, selected_compiler: str = None):
         super().__init__()
+        self.os_type = platform.system()
+        # 根据平台设置默认编译器
+        if selected_compiler is None:
+            selected_compiler = self.DEFAULT_COMPILER.get(self.os_type, "gcc")
         self.selected_compiler = selected_compiler
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
+        # 获取当前平台的编译器列表
+        compilers = self.COMPILERS.get(self.os_type, self.COMPILERS["Linux"])
+        
+        # 平台名称映射
+        platform_names = {
+            "Windows": "Windows",
+            "Linux": "Linux",
+            "Darwin": "macOS",
+        }
+        platform_name = platform_names.get(self.os_type, "Unknown")
+        
         with Container(id="compiler-container"):
             yield Static("选择 C 编译器", id="screen-title")
             yield Static(
-                "选择用于 Nuitka 编译的 C 编译器",
+                f"选择用于 Nuitka 编译的 C 编译器 ({platform_name})",
                 id="compiler-description"
             )
 
-            # Windows平台编译器列表
-            compilers = [
-                ("MSVC - Visual Studio (推荐)", "msvc"),
-                ("MinGW64 - GCC for Windows", "mingw64"),
-                ("Clang-cl - Clang (MSVC兼容)", "clang-cl"),
-                ("Clang - LLVM (MinGW)", "clang"),
-            ]
-
-            # 根据当前选择设置初始索引
-            initial_index = 0
-            for i, (_, value) in enumerate(compilers):
-                if value == self.selected_compiler:
-                    initial_index = i
-                    break
+            # 查找初始索引
+            initial_index = next(
+                (i for i, (_, value) in enumerate(compilers) if value == self.selected_compiler),
+                0
+            )
 
             yield ListView(
                 *[ListItem(Label(name), id=f"{value}-item") for name, value in compilers],
@@ -110,15 +142,9 @@ class CompilerSelectorScreen(Screen):
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """处理ListView选择事件"""
-        item_id = event.item.id
-        if item_id == "msvc-item":
-            self.selected_compiler = "msvc"
-        elif item_id == "mingw64-item":
-            self.selected_compiler = "mingw64"
-        elif item_id == "clang-cl-item":
-            self.selected_compiler = "clang-cl"
-        elif item_id == "clang-item":
-            self.selected_compiler = "clang"
+        # 从item id中提取编译器名称（移除"-item"后缀）
+        if event.item.id and event.item.id.endswith("-item"):
+            self.selected_compiler = event.item.id[:-5]
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """处理按钮点击事件"""

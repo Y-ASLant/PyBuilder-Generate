@@ -130,7 +130,15 @@ class PackageOptionsScreen(Screen):
         self.config = {}
         self.project_dir: Path = None
         self.selected_plugins: list[str] = []  # 存储选中的插件
-        self.selected_compiler = "msvc"  # 存储选中的编译器，默认MSVC
+        # 根据平台设置默认编译器
+        import platform
+        os_type = platform.system()
+        if os_type == "Windows":
+            self.selected_compiler = "msvc"
+        elif os_type == "Linux":
+            self.selected_compiler = "gcc"
+        else:  # macOS
+            self.selected_compiler = "clang"
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
@@ -440,6 +448,7 @@ class PackageOptionsScreen(Screen):
                 "mingw64": "MinGW64",
                 "clang-cl": "Clang-cl",
                 "clang": "Clang",
+                "gcc": "GCC",
             }
             compiler_name = compiler_names.get(result, result)
             self.app.notify(f"已选择编译器: {compiler_name}", severity="information")
