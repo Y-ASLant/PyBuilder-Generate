@@ -100,7 +100,7 @@ class PackageOptionsScreen(Screen):
         height: 3;
     }
     
-    #plugins-button {
+    #plugins-button, #compiler-button {
         width: 100%;
         margin: 0;
     }
@@ -130,6 +130,7 @@ class PackageOptionsScreen(Screen):
         self.config = {}
         self.project_dir: Path = None
         self.selected_plugins: list[str] = []  # 存储选中的插件
+        self.selected_compiler = "msvc"  # 存储选中的编译器，默认MSVC
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
@@ -173,6 +174,9 @@ class PackageOptionsScreen(Screen):
             self.selected_plugins = (
                 plugins_value if isinstance(plugins_value, list) else []
             )
+
+        # 加载编译器配置
+        self.selected_compiler = self.config.get("compiler", "msvc")
 
         # 根据构庻工具动态生成选项（开关值已在创庻时设置）
         self._create_options_fields()
@@ -258,10 +262,10 @@ class PackageOptionsScreen(Screen):
                     "onefile-switch", "单文件模式 (One File)", True, "onefile"
                 )
             )
-            # 左列第5行：静默模式
+            # 左列第5行：静默输出（合并静默模式和显示进度条）
             left_widgets.append(
                 self._create_switch_widget(
-                    "quiet-switch", "静默模式 (减少输出)", False, "quiet_mode"
+                    "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
                 )
             )
             # 右列第3行：显示控制台窗口
@@ -279,10 +283,17 @@ class PackageOptionsScreen(Screen):
                     "remove_output",
                 )
             )
-            # 右列第5行：显示进度条
+            # 右列第5行：C编译器选择
             right_widgets.append(
-                self._create_switch_widget(
-                    "progressbar-switch", "显示进度条", True, "show_progressbar"
+                Vertical(
+                    Label("C 编译器:", classes="field-label"),
+                    Button(
+                        "选择编译器...",
+                        id="compiler-button",
+                        variant="primary",
+                        flat=True,
+                    ),
+                    classes="field-group",
                 )
             )
 
@@ -294,22 +305,16 @@ class PackageOptionsScreen(Screen):
                     "clean-switch", "清理临时文件", True, "clean"
                 )
             )
-            # 左列：静默模式
+            # 左列：静默输出
             left_widgets.append(
                 self._create_switch_widget(
-                    "quiet-switch", "静默模式 (减少输出)", False, "quiet_mode"
+                    "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
                 )
             )
             # 右列：调试模式
             right_widgets.append(
                 self._create_switch_widget(
                     "debug-switch", "调试模式 (输出详细信息)", False, "debug"
-                )
-            )
-            # 右列：显示进度条
-            right_widgets.append(
-                self._create_switch_widget(
-                    "progressbar-switch", "显示进度条", True, "show_progressbar"
                 )
             )
 
@@ -331,7 +336,10 @@ class PackageOptionsScreen(Screen):
         existing_config["show_console"] = self.query_one(
             "#console-switch", Switch
         ).value
-        existing_config["quiet_mode"] = self.query_one("#quiet-switch", Switch).value
+        # quiet_mode 和 show_progressbar 同步（通用逻辑）
+        quiet_mode = self.query_one("#quiet-switch", Switch).value
+        existing_config["quiet_mode"] = quiet_mode
+        existing_config["show_progressbar"] = quiet_mode
 
         # Nuitka特有选项
         if build_tool == "nuitka":
@@ -340,9 +348,6 @@ class PackageOptionsScreen(Screen):
             ).value
             existing_config["remove_output"] = self.query_one(
                 "#remove-output-switch", Switch
-            ).value
-            existing_config["show_progressbar"] = self.query_one(
-                "#progressbar-switch", Switch
             ).value
             existing_config["lto"] = self.query_one("#lto-switch", Switch).value
             # 并行编译任务数
@@ -359,14 +364,13 @@ class PackageOptionsScreen(Screen):
             existing_config["plugins"] = (
                 ",".join(self.selected_plugins) if self.selected_plugins else ""
             )
+            # C编译器
+            existing_config["compiler"] = self.selected_compiler
 
         # PyInstaller特有选项
         if build_tool == "pyinstaller":
             existing_config["clean"] = self.query_one("#clean-switch", Switch).value
             existing_config["debug"] = self.query_one("#debug-switch", Switch).value
-            existing_config["show_progressbar"] = self.query_one(
-                "#progressbar-switch", Switch
-            ).value
 
         # 保持列表字段
         if "exclude_packages" not in existing_config:
@@ -387,6 +391,8 @@ class PackageOptionsScreen(Screen):
             self.action_generate()
         elif button_id == "plugins-button":
             self.run_worker(self.action_select_plugins())
+        elif button_id == "compiler-button":
+            self.run_worker(self.action_select_compiler())
 
     def action_back(self) -> None:
         """返回上一屏"""
@@ -406,6 +412,27 @@ class PackageOptionsScreen(Screen):
             self.selected_plugins = result
             plugin_count = len(result)
             self.app.notify(f"已选择 {plugin_count} 个插件", severity="information")
+
+    async def action_select_compiler(self) -> None:
+        """打开编译器选择界面"""
+        from src.screens.compiler_selector_screen import CompilerSelectorScreen
+
+        # 打开编译器选择界面并等待结果
+        result = await self.app.push_screen_wait(
+            CompilerSelectorScreen(self.selected_compiler)
+        )
+
+        # 如果用户确认选择（不是取消），更新编译器
+        if result is not None:
+            self.selected_compiler = result
+            compiler_names = {
+                "msvc": "MSVC (Visual Studio)",
+                "mingw64": "MinGW64",
+                "clang-cl": "Clang-cl",
+                "clang": "Clang",
+            }
+            compiler_name = compiler_names.get(result, result)
+            self.app.notify(f"已选择编译器: {compiler_name}", severity="information")
 
     def _validate_and_save(self) -> bool:
         """验证并保存配置，返回是否成功"""

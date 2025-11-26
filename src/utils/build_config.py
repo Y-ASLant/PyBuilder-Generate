@@ -26,6 +26,7 @@ DEFAULT_BUILD_CONFIG = {
     "lto": False,
     "jobs": 4,
     "python_flag": False,
+    "compiler": "msvc",
     # PyInstaller特有
     "clean": True,
     "debug": False,
@@ -154,6 +155,7 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             lines.append(
                 f"python_flag: {str(config.get('python_flag', False)).lower()}\n"
             )
+            lines.append(f"compiler: {config.get('compiler', 'msvc')}\n")
 
         # PyInstaller特有选项
         if config.get("build_tool") == "pyinstaller":

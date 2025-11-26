@@ -8,6 +8,7 @@ from src.screens.mode_selector_screen import ModeSelectorScreen
 from src.screens.compile_config_screen import CompileConfigScreen
 from src.screens.package_options_screen import PackageOptionsScreen
 from src.screens.plugin_selector_screen import PluginSelectorScreen
+from src.screens.compiler_selector_screen import CompilerSelectorScreen
 
 __all__ = [
     "WelcomeScreen",
@@ -16,4 +17,5 @@ __all__ = [
     "CompileConfigScreen",
     "PackageOptionsScreen",
     "PluginSelectorScreen",
+    "CompilerSelectorScreen",
 ]

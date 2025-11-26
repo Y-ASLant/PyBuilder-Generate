@@ -13,18 +13,15 @@ output_dir: build
 quiet_mode: true
 
 # 打包选项
-onefile: true
+onefile: false
 show_console: true
 standalone: true
 remove_output: true
 show_progressbar: true
 lto: false
-jobs: 4
+jobs: 16
 python_flag: false
-
-# 插件
-plugins:
-  - qt-plugins
+compiler: msvc
 
 # 排除的包
 exclude_packages:
