@@ -27,7 +27,7 @@ class PackageOptionsScreen(Screen):
     }
     
     #options-container {
-        width: 80;
+        width: 100;
         height: auto;
         padding: 1 2;
     }
@@ -47,7 +47,12 @@ class PackageOptionsScreen(Screen):
         height: 1;
         color: $accent;
         text-align: center;
-        margin-bottom: 2;
+        margin-bottom: 1;
+    }
+    
+    #options-fields {
+        width: 100%;
+        height: auto;
     }
     
     .options-columns {
@@ -65,7 +70,7 @@ class PackageOptionsScreen(Screen):
     .field-group {
         width: 100%;
         height: auto;
-        margin: 0;
+        margin: 0 0 1 0;
     }
     
     .field-switch-container {
