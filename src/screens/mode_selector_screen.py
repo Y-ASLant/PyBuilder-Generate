@@ -2,6 +2,7 @@
 模式选择屏幕
 """
 
+from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Horizontal
@@ -12,72 +13,7 @@ from textual.binding import Binding
 class ModeSelectorScreen(Screen):
     """模式选择屏幕"""
 
-    CSS = """
-    ModeSelectorScreen {
-        align: center middle;
-        overflow: hidden;
-    }
-    
-    #mode-container {
-        width: 96;
-        height: auto;
-        max-height: 30;
-        padding: 1 2;
-    }
-    
-    #screen-title {
-        width: 100%;
-        height: 1;
-        color: $primary;
-        text-align: center;
-        text-style: bold;
-        margin-bottom: 0;
-    }
-    
-    #screen-description {
-        width: 100%;
-        height: 1;
-        color: $text-muted;
-        text-align: center;
-        margin-bottom: 0;
-    }
-    
-    #project-info {
-        width: 100%;
-        height: 1;
-        color: $accent;
-        text-align: center;
-        margin-bottom: 1;
-    }
-    
-    Select {
-        width: 100%;
-        height: auto;
-        margin: 1 0;
-    }
-    
-    #mode-description {
-        width: 100%;
-        height: auto;
-        color: $text;
-        margin: 1 0 0 0;
-        padding: 1;
-    }
-    
-    #button-container {
-        width: 100%;
-        height: auto;
-        layout: horizontal;
-        align: center middle;
-        margin-top: 1;
-    }
-    
-    Button {
-        margin: 0 2;
-        min-width: 16;
-        height: 3;
-    }
-    """
+    CSS_PATH = Path(__file__).parent.parent / "style" / "mode_selector_screen.tcss"
 
     BINDINGS = [
         Binding("escape", "back", "返回"),

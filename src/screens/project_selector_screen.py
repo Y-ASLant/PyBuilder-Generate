@@ -7,118 +7,15 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Input, Label, ListItem, ListView
+from textual.containers import Container, Horizontal, Vertical
+from textual.widgets import Static, Button, Input, ListView, ListItem, Label
 from textual.binding import Binding
 
 
 class ProjectSelectorScreen(Screen):
     """项目目录选择屏幕"""
 
-    CSS = """
-    ProjectSelectorScreen {
-        align: center middle;
-        overflow: hidden;
-    }
-    
-    #selector-container {
-        width: 96;
-        height: auto;
-        max-height: 30;
-        padding: 1 2;
-    }
-    
-    #screen-title {
-        width: 100%;
-        height: 1;
-        color: $primary;
-        text-align: center;
-        text-style: bold;
-        margin-bottom: 0;
-    }
-    
-    #screen-description {
-        width: 100%;
-        height: 1;
-        color: $text-muted;
-        text-align: center;
-        margin-bottom: 1;
-    }
-    
-    #path-input-container {
-        width: 100%;
-        height: auto;
-        margin-bottom: 1;
-        border: solid $accent;
-        padding: 0 1;
-    }
-    
-    #path-label {
-        color: $text;
-        height: 1;
-        margin-bottom: 0;
-    }
-    
-    #path-input {
-        width: 100%;
-        height: 3;
-    }
-    
-    #tree-container {
-        width: 100%;
-        height: 12;
-        border: solid $accent;
-        margin: 1 0;
-        overflow-y: auto;
-    }
-    
-    ListView {
-        width: 100%;
-        height: 100%;
-        padding: 0;
-        scrollbar-size: 1 1;
-        scrollbar-size-vertical: 1;
-    }
-    
-    ListItem {
-        height: 1;
-        padding: 0 1;
-    }
-    
-    .parent-dir {
-        color: $warning;
-    }
-    
-    .directory {
-        color: $accent;
-    }
-    
-    .file {
-        color: $text-muted;
-    }
-    
-    #selected-path {
-        width: 100%;
-        height: 1;
-        color: $success;
-        text-align: center;
-        margin: 1 0;
-    }
-    
-    #button-container {
-        width: 100%;
-        height: auto;
-        layout: horizontal;
-        align: center middle;
-        margin-top: 1;
-    }
-    
-    Button {
-        margin: 0 2;
-        min-width: 16;
-        height: 3;
-    }
-    """
+    CSS_PATH = Path(__file__).parent.parent / "style" / "project_selector_screen.tcss"
 
     BINDINGS = [
         Binding("escape", "back", "返回"),
