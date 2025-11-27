@@ -240,10 +240,18 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("    start_time = time.time()")
     lines.append("")
     lines.append(
-        "    print(f'{Color.CYAN}{Color.BOLD}开始构建 {PROJECT_NAME} v{VERSION}{Color.RESET}')"
+        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION}{Color.RESET}')"
     )
     lines.append("    print(separator)")
     lines.append("")
+
+    # 添加数据文件分隔符检测（如果需要）
+    add_data = config.get("add_data", "")
+    if add_data:
+        lines.append("    # 添加数据文件（根据操作系统使用不同分隔符）")
+        lines.append("    import platform")
+        lines.append("    data_separator = ';' if platform.system() == 'Windows' else ':'")
+        lines.append("")
 
     # 构建命令
     lines.append("    # 构建 PyInstaller 命令")
@@ -314,13 +322,18 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
         for module in modules:
             lines.append(f"        '--exclude-module={module}',")
 
-    # 添加数据文件
-    add_data = config.get("add_data", "")
+    # 添加数据文件（已经在前面处理了 import 和 data_separator）
     if add_data:
-        # 按空格分割，每个条目应该是 src;dest 格式（保留分号）
+        # 按空格分割，每个条目应该是 src;dest 格式
         entries = [e.strip() for e in add_data.split() if e.strip()]
         for data_entry in entries:
-            lines.append(f"        '--add-data={data_entry}',")
+            # 将 Windows 格式的分号替换为变量
+            if ';' in data_entry:
+                src, dest = data_entry.split(';', 1)
+                # 使用字符串拼接而不是 f-string 来避免转义问题
+                lines.append(f"        '--add-data=' + '{src}' + data_separator + '{dest}',")
+            else:
+                lines.append(f"        '--add-data={data_entry}',")
 
     # 入口文件
     lines.append("        ENTRY_FILE,")

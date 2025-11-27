@@ -353,26 +353,35 @@ class PackageOptionsScreen(Screen):
 
         # PyInstaller特有选项
         if build_tool == "pyinstaller":
-            # 左列：清理临时文件
+            # 左列：所有开关
             left_widgets.append(
                 self._create_switch_widget(
                     "clean-switch", "清理临时文件", True, "clean"
                 )
             )
-            # 左列：自动确认删除
             left_widgets.append(
                 self._create_switch_widget(
                     "noconfirm-switch", "自动确认 (跳过删除提示)", False, "noconfirm"
                 )
             )
-            # 左列：静默输出
             left_widgets.append(
                 self._create_switch_widget(
                     "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
                 )
             )
-            # 左列：_internal 目录名称
             left_widgets.append(
+                self._create_switch_widget(
+                    "debug-switch", "调试模式 (输出详细信息)", False, "debug"
+                )
+            )
+            left_widgets.append(
+                self._create_switch_widget(
+                    "uac-admin-switch", "管理员权限 (Windows UAC)", False, "uac_admin"
+                )
+            )
+
+            # 右列：所有输入框
+            right_widgets.append(
                 self._create_input_widget(
                     "contents-dir-input",
                     "内部目录名称:",
@@ -380,21 +389,7 @@ class PackageOptionsScreen(Screen):
                     "_internal (默认为 .)",
                 )
             )
-            # 右列：调试模式
             right_widgets.append(
-                self._create_switch_widget(
-                    "debug-switch", "调试模式 (输出详细信息)", False, "debug"
-                )
-            )
-            # 右列：UAC 管理员权限
-            right_widgets.append(
-                self._create_switch_widget(
-                    "uac-admin-switch", "管理员权限 (Windows UAC)", False, "uac_admin"
-                )
-            )
-
-            # 左列：隐藏导入
-            left_widgets.append(
                 self._create_input_widget(
                     "hidden-imports-input",
                     "隐藏导入 (支持空格、中英文逗号分隔):",
@@ -402,8 +397,6 @@ class PackageOptionsScreen(Screen):
                     "例如: PIL numpy.core pandas",
                 )
             )
-
-            # 右列：排除模块
             right_widgets.append(
                 self._create_input_widget(
                     "exclude-modules-input",
@@ -412,9 +405,7 @@ class PackageOptionsScreen(Screen):
                     "例如: tkinter test unittest",
                 )
             )
-
-            # 左列：添加数据文件
-            left_widgets.append(
+            right_widgets.append(
                 self._create_input_widget(
                     "add-data-input",
                     "数据文件 (支持空格、中英文逗号分隔):",
