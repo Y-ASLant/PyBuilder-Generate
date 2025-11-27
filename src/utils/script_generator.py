@@ -171,13 +171,13 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("    except subprocess.CalledProcessError as e:")
     lines.append("        print(separator)")
     lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}✗ 构建失败: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
+        "        print(f'{Color.RED}{Color.BOLD}构建失败: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
     )
     lines.append("        return 1")
     lines.append("    except Exception as e:")
     lines.append("        print(separator)")
     lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}✗ 发生错误: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
+        "        print(f'{Color.RED}{Color.BOLD}发生错误: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
     )
     lines.append("        return 1")
     lines.append("")
@@ -361,13 +361,13 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("    except subprocess.CalledProcessError as e:")
     lines.append("        print(separator)")
     lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}✗ 构建失败: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
+        "        print(f'{Color.RED}{Color.BOLD}构建失败: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
     )
     lines.append("        return 1")
     lines.append("    except Exception as e:")
     lines.append("        print(separator)")
     lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}✗ 发生错误: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
+        "        print(f'{Color.RED}{Color.BOLD}发生错误: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
     )
     lines.append("        return 1")
     lines.append("")

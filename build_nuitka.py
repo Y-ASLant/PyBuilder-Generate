@@ -79,11 +79,11 @@ def build():
         return 0
     except subprocess.CalledProcessError as e:
         print(separator)
-        print(f'{Color.RED}{Color.BOLD}✗ 构建失败: {Color.RESET}{Color.RED}{e}{Color.RESET}')
+        print(f'{Color.RED}{Color.BOLD}构建失败: {Color.RESET}{Color.RED}{e}{Color.RESET}')
         return 1
     except Exception as e:
         print(separator)
-        print(f'{Color.RED}{Color.BOLD}✗ 发生错误: {Color.RESET}{Color.RED}{e}{Color.RESET}')
+        print(f'{Color.RED}{Color.BOLD}发生错误: {Color.RESET}{Color.RED}{e}{Color.RESET}')
         return 1
 
 
