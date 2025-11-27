@@ -21,14 +21,13 @@ class GenerationScreen(Screen):
     CSS = """
     GenerationScreen {
         align: center middle;
-        background: $surface;
     }
     
     #generation-container {
         width: 60;
         height: auto;
         padding: 2 4;
-        background: $panel;
+        background: transparent;
         border: solid $accent;
     }
     

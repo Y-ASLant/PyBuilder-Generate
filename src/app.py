@@ -74,6 +74,7 @@ class PyBuildTUI(App):
         title: str = "",
         severity: str = "information",
         timeout: float | None = None,
+        markup: bool = True,
     ) -> None:
         """重写 notify 方法以设置自定义显示时长"""
         # 使用自定义超时时间，如果未指定则使用默认值
@@ -81,7 +82,7 @@ class PyBuildTUI(App):
             timeout = self.NOTIFICATION_TIMEOUT
 
         # 调用父类的 notify 方法
-        super().notify(message, title=title, severity=severity, timeout=timeout)
+        super().notify(message, title=title, severity=severity, timeout=timeout, markup=markup)
 
     # 主题切换
     def action_set_theme(self, theme: str) -> None:

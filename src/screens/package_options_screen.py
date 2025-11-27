@@ -7,7 +7,7 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Switch, Label, Input
+from textual.widgets import Static, Button, Switch, Label, Input, TabbedContent, TabPane
 from textual.binding import Binding
 
 from src.utils import (
@@ -24,6 +24,13 @@ class PackageOptionsScreen(Screen):
     PackageOptionsScreen {
         align: center middle;
         overflow: hidden;
+    }
+    
+    /* Toast 通知样式：定位到右上角 */
+    ToastRack {
+        dock: top;
+        width: auto;
+        height: auto;
     }
     
     #options-container {
@@ -131,6 +138,65 @@ class PackageOptionsScreen(Screen):
         min-width: 16;
         height: 3;
     }
+    
+    /* 标签页样式 */
+    #pyinstaller-tabs {
+        width: 100%;
+        height: auto;
+    }
+    
+    TabbedContent {
+        height: auto;
+    }
+    
+    TabPane {
+        height: auto;
+        padding: 1;
+    }
+    
+    Tabs {
+        background: $panel;
+    }
+    
+    Tab {
+        background: $panel;
+        color: $text-muted;
+    }
+    
+    Tab.-active {
+        background: $primary;
+        color: $text;
+        text-style: bold;
+    }
+    
+    /* 基本选项布局 */
+    .basic-options-content {
+        width: 100%;
+        height: auto;
+    }
+    
+    .switches-row {
+        width: 100%;
+        height: auto;
+        layout: horizontal;
+        margin-bottom: 1;
+    }
+    
+    .switches-row > .field-group {
+        width: 50%;
+        margin: 0 1 0 0;
+    }
+    
+    .inputs-row {
+        width: 100%;
+        height: auto;
+        layout: horizontal;
+    }
+    
+    .inputs-row > .field-group {
+        width: 50%;
+        margin: 0 1 0 0;
+    }
     """
 
     BINDINGS = [
@@ -203,12 +269,13 @@ class PackageOptionsScreen(Screen):
         # 根据构庻工具动态生成选项（开关值已在创庻时设置）
         self._create_options_fields()
 
-        # 如果是 PyInstaller 且单文件模式，禁用内部目录名称输入框
-        if self.config.get("build_tool") == "pyinstaller" and self.config.get(
-            "onefile", True
-        ):
+        # 如果是 PyInstaller，根据单文件模式设置输入框状态
+        if self.config.get("build_tool") == "pyinstaller":
+            is_onefile = self.config.get("onefile", True)
             try:
-                self.query_one("#contents-dir-input", Input).disabled = True
+                # 单文件模式：禁用内部目录，启用启动画面
+                self.query_one("#contents-dir-input", Input).disabled = is_onefile
+                self.query_one("#splash-image-input", Input).disabled = not is_onefile
             except Exception:
                 pass
 
@@ -360,75 +427,147 @@ class PackageOptionsScreen(Screen):
                 )
             )
 
-        # PyInstaller特有选项
+        # PyInstaller特有选项 - 使用标签页分组
         if build_tool == "pyinstaller":
-            # 左列：所有开关
-            left_widgets.append(
-                self._create_switch_widget(
-                    "onefile-switch", "单文件模式", True, "onefile"
-                )
+            # 基本选项 - 2个开关横向排列
+            switch1 = self._create_switch_widget(
+                "onefile-switch", "单文件模式", True, "onefile"
             )
-            left_widgets.append(
-                self._create_switch_widget(
-                    "clean-switch", "清理临时文件", True, "clean"
-                )
+            switch2 = self._create_switch_widget(
+                "uac-admin-switch", "管理员权限 (Windows UAC)", False, "uac_admin"
             )
-            left_widgets.append(
-                self._create_switch_widget(
-                    "noconfirm-switch", "自动确认 (跳过删除提示)", False, "noconfirm"
-                )
+            switches_row = Horizontal(switch1, switch2, classes="switches-row")
+
+            # 基本选项 - 2个输入框横向排列
+            input1 = self._create_input_widget(
+                "contents-dir-input",
+                "内部目录名称:",
+                "contents_directory",
+                "_internal (默认为 .)",
             )
-            left_widgets.append(
-                self._create_switch_widget(
-                    "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
-                )
+            input2 = self._create_input_widget(
+                "splash-image-input",
+                "启动画面图片 (仅单文件模式):",
+                "splash_image",
+                "例如: splash.png",
             )
-            left_widgets.append(
-                self._create_switch_widget(
-                    "debug-switch", "调试模式 (输出详细信息)", False, "debug"
-                )
-            )
-            left_widgets.append(
-                self._create_switch_widget(
-                    "uac-admin-switch", "管理员权限 (Windows UAC)", False, "uac_admin"
-                )
+            inputs_row = Horizontal(input1, input2, classes="inputs-row")
+
+            # 基本选项标签页内容（垂直布局：开关行 + 输入框行）
+            basic_content = Vertical(
+                switches_row, inputs_row, classes="basic-options-content"
             )
 
-            # 右列：所有输入框
-            right_widgets.append(
-                self._create_input_widget(
-                    "contents-dir-input",
-                    "内部目录名称:",
-                    "contents_directory",
-                    "_internal (默认为 .)",
-                )
+            # 高级选项 - 第1行开关（2个）
+            switch3 = self._create_switch_widget(
+                "clean-switch", "清理临时文件", True, "clean"
             )
-            right_widgets.append(
-                self._create_input_widget(
-                    "hidden-imports-input",
-                    "隐藏导入 (支持空格、中英文逗号分隔):",
-                    "hidden_imports",
-                    "例如: PIL numpy.core pandas",
-                )
+            switch4 = self._create_switch_widget(
+                "noconfirm-switch", "自动确认 (跳过删除提示)", False, "noconfirm"
             )
-            right_widgets.append(
-                self._create_input_widget(
-                    "exclude-modules-input",
-                    "排除模块 (支持空格、中英文逗号分隔):",
-                    "exclude_modules",
-                    "例如: tkinter test unittest",
-                )
+            switches_row1 = Horizontal(switch3, switch4, classes="switches-row")
+
+            # 高级选项 - 第2行开关（2个）
+            switch5 = self._create_switch_widget(
+                "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
             )
-            right_widgets.append(
-                self._create_input_widget(
-                    "add-data-input",
-                    "数据文件 (支持空格、中英文逗号分隔):",
-                    "add_data",
-                    "格式: src;dest 多个用空格",
-                )
+            switch6 = self._create_switch_widget(
+                "debug-switch", "调试模式 (输出详细信息)", False, "debug"
+            )
+            switches_row2 = Horizontal(switch5, switch6, classes="switches-row")
+
+            # 高级选项标签页内容（垂直布局：2行开关）
+            advanced_content = Vertical(
+                switches_row1,
+                switches_row2,
+                classes="basic-options-content",
             )
 
-        # 创建两列容器并一次性挂载所有组件
+            # 导入与数据标签页 - 第1行输入框（2个）
+            import_input1 = self._create_input_widget(
+                "hidden-imports-input",
+                "隐藏导入 (支持空格、中英文逗号分隔):",
+                "hidden_imports",
+                "例如: PIL numpy.core pandas",
+            )
+            import_input2 = self._create_input_widget(
+                "exclude-modules-input",
+                "排除模块 (支持空格、中英文逗号分隔):",
+                "exclude_modules",
+                "例如: tkinter test unittest",
+            )
+            import_row1 = Horizontal(import_input1, import_input2, classes="inputs-row")
+
+            # 导入与数据标签页 - 第2行输入框（2个）
+            import_input3 = self._create_input_widget(
+                "collect-submodules-input",
+                "收集子模块 (支持空格、中英文逗号分隔):",
+                "collect_submodules",
+                "例如: textual pyfiglet",
+            )
+            import_input4 = self._create_input_widget(
+                "collect-data-input",
+                "收集数据文件 (支持空格、中英文逗号分隔):",
+                "collect_data",
+                "例如: textual pyfiglet",
+            )
+            import_row2 = Horizontal(import_input3, import_input4, classes="inputs-row")
+
+            # 导入与数据标签页 - 第3行输入框（2个）
+            import_input5 = self._create_input_widget(
+                "collect-binaries-input",
+                "收集二进制文件 (支持空格、中英文逗号分隔):",
+                "collect_binaries",
+                "例如: numpy PIL",
+            )
+            import_input6 = self._create_input_widget(
+                "collect-all-input",
+                "收集所有 (支持空格、中英文逗号分隔):",
+                "collect_all",
+                "例如: cv2 scipy",
+            )
+            import_row3 = Horizontal(import_input5, import_input6, classes="inputs-row")
+
+            # 导入与数据标签页 - 第4行输入框（2个）
+            import_input7 = self._create_input_widget(
+                "add-data-input",
+                "数据文件 (支持空格、中英文逗号分隔):",
+                "add_data",
+                "格式: src;dest 多个用空格",
+            )
+            import_input8 = self._create_input_widget(
+                "add-binary-input",
+                "二进制文件 (支持空格、中英文逗号分隔):",
+                "add_binary",
+                "格式: src;dest 多个用空格",
+            )
+            import_row4 = Horizontal(import_input7, import_input8, classes="inputs-row")
+
+            # 导入与数据标签页内容（垂直布局：4行输入框）
+            import_content = Vertical(
+                import_row1,
+                import_row2,
+                import_row3,
+                import_row4,
+                classes="basic-options-content",
+            )
+
+            # 创建标签页容器并使用 compose 方法添加标签页
+            tabs = TabbedContent(id="pyinstaller-tabs")
+            tabs.compose_add_child(TabPane("基本选项", basic_content, id="basic-tab"))
+            tabs.compose_add_child(
+                TabPane("高级选项", advanced_content, id="advanced-tab")
+            )
+            tabs.compose_add_child(
+                TabPane("导入与数据", import_content, id="import-tab")
+            )
+
+            # 挂载标签页容器
+            options_container.mount(tabs)
+
+            return  # PyInstaller 使用标签页，不需要下面的两列布局
+
+        # 创建两列容器并一次性挂载所有组件（Nuitka 使用）
         left_column = Vertical(*left_widgets, classes="option-column")
         right_column = Vertical(*right_widgets, classes="option-column")
         two_columns = Horizontal(left_column, right_column, classes="options-columns")
@@ -518,10 +657,45 @@ class PackageOptionsScreen(Screen):
                 "#exclude-modules-input", Input
             ).value.strip()
 
+            # 收集子模块
+            existing_config["collect_submodules"] = self.query_one(
+                "#collect-submodules-input", Input
+            ).value.strip()
+
+            # 收集数据文件
+            existing_config["collect_data"] = self.query_one(
+                "#collect-data-input", Input
+            ).value.strip()
+
+            # 收集二进制文件
+            existing_config["collect_binaries"] = self.query_one(
+                "#collect-binaries-input", Input
+            ).value.strip()
+
+            # 收集所有
+            existing_config["collect_all"] = self.query_one(
+                "#collect-all-input", Input
+            ).value.strip()
+
             # 添加数据文件
             existing_config["add_data"] = self.query_one(
                 "#add-data-input", Input
             ).value.strip()
+
+            # 添加二进制文件
+            existing_config["add_binary"] = self.query_one(
+                "#add-binary-input", Input
+            ).value.strip()
+
+            # 启动画面图片（仅单文件模式时读取UI值）
+            if existing_config["onefile"]:
+                splash_image = self.query_one(
+                    "#splash-image-input", Input
+                ).value.strip()
+                existing_config["splash_image"] = splash_image
+            else:
+                # 非单文件模式时，保留配置文件中的值（不从被禁用的UI读取）
+                existing_config["splash_image"] = self.config.get("splash_image", "")
 
         # 保持列表字段
         if "exclude_packages" not in existing_config:
@@ -534,12 +708,75 @@ class PackageOptionsScreen(Screen):
         """处理开关变化事件"""
         if event.switch.id == "onefile-switch":
             try:
+                # 更新内部目录名称状态
                 contents_dir_input = self.query_one("#contents-dir-input", Input)
                 contents_dir_input.disabled = event.value
                 if event.value:
                     contents_dir_input.value = ""
+
+                # 更新启动画面图片状态（onefile时启用，非onefile时禁用）
+                splash_image_input = self.query_one("#splash-image-input", Input)
+                splash_image_input.disabled = not event.value
+                # 注意：不清空值，保留用户输入，只是禁用输入框
             except Exception:
                 pass
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """处理输入框变化事件"""
+        # 检查 collect_all 与其他收集选项的冲突（仅 PyInstaller）
+        if self.config.get("build_tool") == "pyinstaller":
+            if event.input.id in [
+                "collect-all-input",
+                "collect-submodules-input",
+                "collect-data-input",
+                "collect-binaries-input",
+            ]:
+                self._check_collect_conflicts()
+
+    def _check_collect_conflicts(self) -> None:
+        """检查收集选项的冲突"""
+        try:
+            import re
+
+            # 解析输入值的辅助函数
+            def parse_input(input_id: str) -> set:
+                return set(
+                    filter(
+                        None,
+                        re.split(
+                            r"[,\s，]+",
+                            self.query_one(f"#{input_id}", Input).value.strip(),
+                        ),
+                    )
+                )
+
+            # 获取所有收集选项
+            collect_all = parse_input("collect-all-input")
+            if not collect_all:
+                return
+
+            # 检查与其他选项的重叠
+            checks = [
+                ("collect-submodules-input", "收集子模块"),
+                ("collect-data-input", "收集数据文件"),
+                ("collect-binaries-input", "收集二进制文件"),
+            ]
+
+            conflicts = [
+                f"{label}: {', '.join(sorted(overlap))}"
+                for input_id, label in checks
+                if (overlap := collect_all & parse_input(input_id))
+            ]
+
+            if conflicts:
+                self.notify(
+                    "以下包在'收集所有'中已包含，无需重复配置:\n"
+                    + "\n".join(conflicts),
+                    severity="warning",
+                    timeout=5,
+                )
+        except Exception as e:
+            self.notify(f"检查冲突时出错: {str(e)}", severity="error")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """处理按钮点击事件"""
@@ -640,6 +877,10 @@ class PackageOptionsScreen(Screen):
 
     def action_save(self) -> None:
         """保存配置"""
+        # 保存前检查冲突
+        if self.config.get("build_tool") == "pyinstaller":
+            self._check_collect_conflicts()
+
         if self._validate_and_save():
             self.app.notify("配置已保存", severity="information")
 

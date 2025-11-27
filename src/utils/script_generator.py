@@ -155,7 +155,9 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("        elapsed_time = time.time() - start_time")
     lines.append("        minutes = int(elapsed_time // 60)")
     lines.append("        seconds = int(elapsed_time % 60)")
-    lines.append("        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')")
+    lines.append(
+        "        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')"
+    )
     lines.append("        import os")
     lines.append("        abs_output = os.path.abspath(OUTPUT_DIR)")
     lines.append("        print(f'{Color.GREEN}Output: {abs_output}{Color.RESET}')")
@@ -228,6 +230,8 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append(f"ENTRY_FILE = '{config['entry_file']}'")
     if config.get("icon_file"):
         lines.append(f"ICON_FILE = '{config['icon_file']}'")
+    if config.get("splash_image"):
+        lines.append(f"SPLASH_IMAGE = '{config['splash_image']}'")
     lines.append(f"OUTPUT_DIR = '{config['output_dir']}'")
     lines.append("")
 
@@ -250,7 +254,9 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     if add_data:
         lines.append("    # 添加数据文件（根据操作系统使用不同分隔符）")
         lines.append("    import platform")
-        lines.append("    data_separator = ';' if platform.system() == 'Windows' else ':'")
+        lines.append(
+            "    data_separator = ';' if platform.system() == 'Windows' else ':'"
+        )
         lines.append("")
 
     # 构建命令
@@ -302,6 +308,10 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     if config.get("icon_file"):
         lines.append("        f'--icon={ICON_FILE}',")
 
+    # 启动画面（仅单文件模式）
+    if config.get("splash_image") and onefile_mode:
+        lines.append("        f'--splash={SPLASH_IMAGE}',")
+
     # UAC 管理员权限
     if config.get("uac_admin", False):
         lines.append("        '--uac-admin',")
@@ -322,18 +332,98 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
         for module in modules:
             lines.append(f"        '--exclude-module={module}',")
 
-    # 添加数据文件（已经在前面处理了 import 和 data_separator）
+    # 收集子模块
+    collect_submodules = config.get("collect_submodules", "")
+    if collect_submodules:
+        # 支持多种分隔符：空格、逗号
+        packages = [
+            p.strip() for p in re.split(r"[,\s]+", collect_submodules) if p.strip()
+        ]
+        for package in packages:
+            lines.append(f"        '--collect-submodules={package}',")
+
+    # 收集数据文件
+    collect_data = config.get("collect_data", "")
+    if collect_data:
+        # 支持多种分隔符：空格、逗号
+        packages = [p.strip() for p in re.split(r"[,\s]+", collect_data) if p.strip()]
+        for package in packages:
+            lines.append(f"        '--collect-data={package}',")
+
+    # 收集二进制文件
+    collect_binaries = config.get("collect_binaries", "")
+    if collect_binaries:
+        # 支持多种分隔符：空格、逗号
+        packages = [
+            p.strip() for p in re.split(r"[,\s]+", collect_binaries) if p.strip()
+        ]
+        for package in packages:
+            lines.append(f"        '--collect-binaries={package}',")
+
+    # 收集所有（子模块+数据+二进制）
+    collect_all = config.get("collect_all", "")
+    if collect_all:
+        # 支持多种分隔符：空格、逗号
+        packages = [p.strip() for p in re.split(r"[,\s]+", collect_all) if p.strip()]
+        for package in packages:
+            lines.append(f"        '--collect-all={package}',")
+
+    # 添加数据文件
     if add_data:
-        # 按空格分割，每个条目应该是 src;dest 格式
         entries = [e.strip() for e in add_data.split() if e.strip()]
         for data_entry in entries:
-            # 将 Windows 格式的分号替换为变量
-            if ';' in data_entry:
-                src, dest = data_entry.split(';', 1)
-                # 使用字符串拼接而不是 f-string 来避免转义问题
-                lines.append(f"        '--add-data=' + '{src}' + data_separator + '{dest}',")
+            if ";" in data_entry:
+                src, dest = data_entry.split(";", 1)
+                # 将路径分割为部分，用于 os.path.join
+                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
+                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
+
+                # 生成 os.path.join 调用
+                src_code = (
+                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
+                    if len(src_parts) > 1
+                    else repr(src_parts[0] if src_parts else src)
+                )
+                dest_code = (
+                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
+                    if len(dest_parts) > 1
+                    else repr(dest_parts[0] if dest_parts else dest)
+                )
+
+                lines.append(
+                    f"        f'--add-data={{{src_code}}}{{data_separator}}{{{dest_code}}}',"
+                )
             else:
                 lines.append(f"        '--add-data={data_entry}',")
+
+    # 添加二进制文件
+    add_binary = config.get("add_binary", "")
+    if add_binary:
+        entries = [e.strip() for e in add_binary.split() if e.strip()]
+        for binary_entry in entries:
+            if ";" in binary_entry:
+                src, dest = binary_entry.split(";", 1)
+                # 将路径分割为部分，用于 os.path.join
+                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
+                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
+
+                # 生成 os.path.join 调用
+                src_code = (
+                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
+                    if len(src_parts) > 1
+                    else repr(src_parts[0] if src_parts else src)
+                )
+                dest_code = (
+                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
+                    if len(dest_parts) > 1
+                    else repr(dest_parts[0] if dest_parts else dest)
+                )
+
+                lines.append(
+                    f"        f'--add-binary={{{src_code}}}{{data_separator}}{{{dest_code}}}',"
+                )
+            else:
+                lines.append(f"        '--add-binary={binary_entry}',")
 
     # 入口文件
     lines.append("        ENTRY_FILE,")
@@ -354,7 +444,9 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("        elapsed_time = time.time() - start_time")
     lines.append("        minutes = int(elapsed_time // 60)")
     lines.append("        seconds = int(elapsed_time % 60)")
-    lines.append("        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')")
+    lines.append(
+        "        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')"
+    )
     lines.append("        # 清理 .spec 文件")
     lines.append("        spec_file = f'{PROJECT_NAME}.spec'")
     lines.append("        if os.path.exists(spec_file):")

@@ -39,10 +39,6 @@ def build():
     print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION}{Color.RESET}')
     print(separator)
 
-    # 添加数据文件（根据操作系统使用不同分隔符）
-    import platform
-    data_separator = ';' if platform.system() == 'Windows' else ':'
-
     # 构建 PyInstaller 命令
     cmd = [
         sys.executable,
@@ -56,7 +52,8 @@ def build():
         '--log-level=WARN',
         f'--icon={ICON_FILE}',
         '--exclude-module=nuitka',
-        '--add-data=' + 'assets/pyfiglet/fonts' + data_separator + 'pyfiglet/fonts',
+        '--collect-submodules=textual',
+        '--collect-data=pyfiglet',
         ENTRY_FILE,
     ]
 
