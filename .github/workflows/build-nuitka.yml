@@ -3,13 +3,14 @@ name: Build with Nuitka
 on:
   push:
     branches:
+      - main
       - dev
   workflow_dispatch:
 
 jobs:
   build:
-    # 只在提交信息包含 build_1: 时触发
-    if: contains(github.event.head_commit.message, 'build_1:')
+    # 在提交信息包含 build_1: 或 build: 时触发
+    if: contains(github.event.head_commit.message, 'build_1:') || contains(github.event.head_commit.message, 'build:')
     runs-on: windows-latest
     
     steps:
