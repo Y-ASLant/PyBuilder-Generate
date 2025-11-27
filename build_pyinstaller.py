@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PyBuilder - Nuitka 构建脚本
+PyBuilder - PyInstaller 构建脚本
 版本: 1.0.0
 """
 
@@ -8,6 +8,7 @@ import sys
 import subprocess
 import shutil
 import time
+import os
 
 
 # ANSI 颜色代码
@@ -25,33 +26,29 @@ class Color:
 PROJECT_NAME = 'PyBuilder'
 VERSION = '1.0.0'
 ENTRY_FILE = 'main.py'
-COMPANY_NAME = 'ASLant'
 ICON_FILE = 'assets/app.ico'
 OUTPUT_DIR = 'build'
 
 def build():
-    """执行 Nuitka 构建"""
+    """执行 PyInstaller 构建"""
     # 获取终端宽度
     width = shutil.get_terminal_size().columns
     separator = '-' * width
     start_time = time.time()
 
-    print(f'{Color.CYAN}{Color.BOLD}开始构建 {PROJECT_NAME} v{VERSION} {Color.RESET}')
+    print(f'{Color.CYAN}{Color.BOLD}开始构建 {PROJECT_NAME} v{VERSION}{Color.RESET}')
     print(separator)
 
-    # 构建 Nuitka 命令
+    # 构建 PyInstaller 命令
     cmd = [
         sys.executable,
-        '-m', 'nuitka',
-        '--standalone',
-        f'--output-dir={OUTPUT_DIR}',
-        '--jobs=16',
-        '--quiet',
-        '--remove-output',
-        f'--windows-icon-from-ico={ICON_FILE}',
-        f'--windows-company-name={COMPANY_NAME}',
-        f'--windows-product-version={VERSION}',
-        f'--windows-file-version={VERSION}',
+        '-m', 'PyInstaller',
+        f'--distpath={OUTPUT_DIR}',
+        '--workpath=build/temp',
+        f'--name={PROJECT_NAME}',
+        '--clean',
+        '--log-level=WARN',
+        f'--icon={ICON_FILE}',
         ENTRY_FILE,
     ]
 
@@ -69,7 +66,11 @@ def build():
         minutes = int(elapsed_time // 60)
         seconds = int(elapsed_time % 60)
         print(f'{Color.GREEN}{Color.BOLD}构建成功！{Color.RESET}')
-        import os
+        # 清理 .spec 文件
+        spec_file = f'{PROJECT_NAME}.spec'
+        if os.path.exists(spec_file):
+            os.remove(spec_file)
+            print(f'{Color.GRAY}已清理: {spec_file}{Color.RESET}')
         abs_output = os.path.abspath(OUTPUT_DIR)
         print(f'{Color.GREEN}输出目录: {abs_output}{Color.RESET}')
         if minutes > 0:

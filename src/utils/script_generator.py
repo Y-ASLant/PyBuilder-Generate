@@ -205,6 +205,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("import subprocess")
     lines.append("import shutil")
     lines.append("import time")
+    lines.append("import os")
     lines.append("")
     lines.append("")
     lines.append("# ANSI 颜色代码")
@@ -250,11 +251,15 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("        '-m', 'PyInstaller',")
 
     # 基本选项
-    if config.get("onefile", True):
+    onefile_mode = config.get("onefile", True)
+    if onefile_mode:
         lines.append("        '--onefile',")
 
     # 输出选项
     lines.append("        f'--distpath={OUTPUT_DIR}',")
+    # 非 onefile 模式且输出目录是 build 时，指定工作路径避免冲突
+    if not onefile_mode and config.get("output_dir", "build") == "build":
+        lines.append("        '--workpath=build/temp',")
     lines.append("        f'--name={PROJECT_NAME}',")
 
     # 控制台选项
@@ -264,6 +269,15 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     # 清理选项
     if config.get("clean", True):
         lines.append("        '--clean',")
+
+    # 静默模式和日志级别
+    quiet_mode = config.get("quiet_mode", False)
+    if quiet_mode:
+        lines.append("        '--log-level=WARN',")
+
+    # 调试模式
+    if config.get("debug", False):
+        lines.append("        '--debug=all',")
 
     # 图标
     if config.get("icon_file"):
@@ -289,7 +303,11 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("        minutes = int(elapsed_time // 60)")
     lines.append("        seconds = int(elapsed_time % 60)")
     lines.append("        print(f'{Color.GREEN}{Color.BOLD}构建成功！{Color.RESET}')")
-    lines.append("        import os")
+    lines.append("        # 清理 .spec 文件")
+    lines.append("        spec_file = f'{PROJECT_NAME}.spec'")
+    lines.append("        if os.path.exists(spec_file):")
+    lines.append("            os.remove(spec_file)")
+    lines.append("            print(f'{Color.GRAY}已清理: {spec_file}{Color.RESET}')")
     lines.append("        abs_output = os.path.abspath(OUTPUT_DIR)")
     lines.append("        print(f'{Color.GREEN}输出目录: {abs_output}{Color.RESET}')")
     lines.append("        if minutes > 0:")

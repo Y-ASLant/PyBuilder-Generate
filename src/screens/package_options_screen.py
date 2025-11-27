@@ -370,22 +370,19 @@ class PackageOptionsScreen(Screen):
         existing_config = load_build_config(self.project_dir)
         build_tool = existing_config.get("build_tool", "nuitka")
 
-        # 通用选项
-        existing_config["onefile"] = self.query_one("#onefile-switch", Switch).value
-        existing_config["show_console"] = self.query_one(
-            "#console-switch", Switch
-        ).value
-        # 静默模式配置
-        quiet_mode = self.query_one("#quiet-switch", Switch).value
-        existing_config["quiet_mode"] = quiet_mode
-        # 静默模式时不显示详细进度
-        if build_tool == "nuitka":
-            existing_config["show_progress"] = not quiet_mode
-        else:
-            existing_config["show_progressbar"] = not quiet_mode
-
         # Nuitka特有选项
         if build_tool == "nuitka":
+            # Nuitka 通用选项
+            existing_config["onefile"] = self.query_one("#onefile-switch", Switch).value
+            existing_config["show_console"] = self.query_one(
+                "#console-switch", Switch
+            ).value
+            # 静默模式配置
+            quiet_mode = self.query_one("#quiet-switch", Switch).value
+            existing_config["quiet_mode"] = quiet_mode
+            existing_config["show_progress"] = not quiet_mode
+            
+            # Nuitka 特有选项
             existing_config["standalone"] = self.query_one(
                 "#standalone-switch", Switch
             ).value
@@ -411,6 +408,12 @@ class PackageOptionsScreen(Screen):
 
         # PyInstaller特有选项
         if build_tool == "pyinstaller":
+            # 静默模式配置
+            quiet_mode = self.query_one("#quiet-switch", Switch).value
+            existing_config["quiet_mode"] = quiet_mode
+            existing_config["show_progressbar"] = not quiet_mode
+            
+            # PyInstaller 特有选项
             existing_config["clean"] = self.query_one("#clean-switch", Switch).value
             existing_config["debug"] = self.query_one("#debug-switch", Switch).value
 
