@@ -30,6 +30,7 @@ DEFAULT_BUILD_CONFIG = {
     "compiler": "msvc",
     # PyInstaller特有
     "clean": True,
+    "noconfirm": False,
     "debug": False,
     "contents_directory": ".",
     "uac_admin": False,
@@ -176,6 +177,7 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
         # PyInstaller特有选项
         if config.get("build_tool") == "pyinstaller":
             lines.append(f"clean: {str(config.get('clean', True)).lower()}\n")
+            lines.append(f"noconfirm: {str(config.get('noconfirm', False)).lower()}\n")
             lines.append(f"debug: {str(config.get('debug', False)).lower()}\n")
             lines.append(
                 f"show_progressbar: {str(config.get('show_progressbar', True)).lower()}\n"

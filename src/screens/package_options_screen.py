@@ -359,6 +359,12 @@ class PackageOptionsScreen(Screen):
                     "clean-switch", "清理临时文件", True, "clean"
                 )
             )
+            # 左列：自动确认删除
+            left_widgets.append(
+                self._create_switch_widget(
+                    "noconfirm-switch", "自动确认 (跳过删除提示)", False, "noconfirm"
+                )
+            )
             # 左列：静默输出
             left_widgets.append(
                 self._create_switch_widget(
@@ -475,6 +481,9 @@ class PackageOptionsScreen(Screen):
 
             # PyInstaller 特有选项
             existing_config["clean"] = self.query_one("#clean-switch", Switch).value
+            existing_config["noconfirm"] = self.query_one(
+                "#noconfirm-switch", Switch
+            ).value
             existing_config["debug"] = self.query_one("#debug-switch", Switch).value
 
             # 内部目录名称

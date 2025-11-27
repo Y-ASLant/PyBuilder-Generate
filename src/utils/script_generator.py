@@ -277,6 +277,10 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     if config.get("clean", True):
         lines.append("        '--clean',")
 
+    # 自动确认选项
+    if config.get("noconfirm", False):
+        lines.append("        '--noconfirm',")
+
     # 静默模式和日志级别
     quiet_mode = config.get("quiet_mode", False)
     if quiet_mode:

@@ -48,9 +48,11 @@ def build():
         f'--name={PROJECT_NAME}',
         '--contents-directory=lib',
         '--clean',
+        '--noconfirm',
         '--log-level=WARN',
         f'--icon={ICON_FILE}',
         '--exclude-module=nuitka',
+        '--add-data=.venv/Lib/site-packages/pyfiglet/fonts;pyfiglet/fonts',
         ENTRY_FILE,
     ]
 
