@@ -375,14 +375,14 @@ class PackageOptionsScreen(Screen):
         existing_config["show_console"] = self.query_one(
             "#console-switch", Switch
         ).value
-        # quiet_mode 和 show_progress 同步（通用逻辑）
+        # 静默模式配置
         quiet_mode = self.query_one("#quiet-switch", Switch).value
         existing_config["quiet_mode"] = quiet_mode
-        # Nuitka使用show_progress，PyInstaller使用show_progressbar
+        # 静默模式时不显示详细进度
         if build_tool == "nuitka":
-            existing_config["show_progress"] = quiet_mode
+            existing_config["show_progress"] = not quiet_mode
         else:
-            existing_config["show_progressbar"] = quiet_mode
+            existing_config["show_progressbar"] = not quiet_mode
 
         # Nuitka特有选项
         if build_tool == "nuitka":
@@ -430,7 +430,7 @@ class PackageOptionsScreen(Screen):
         elif button_id == "save-btn":
             self.action_save()
         elif button_id == "generate-btn":
-            self.action_generate()
+            self.run_worker(self.action_generate())
         elif button_id == "plugins-button":
             self.run_worker(self.action_select_plugins())
         elif button_id == "compiler-button":
@@ -516,10 +516,19 @@ class PackageOptionsScreen(Screen):
         if self._validate_and_save():
             self.app.notify("配置已保存", severity="information")
 
-    def action_generate(self) -> None:
+    async def action_generate(self) -> None:
         """生成编译脚本"""
         if not self._validate_and_save():
             return
 
-        # TODO: 生成编译脚本
-        self.app.notify("生成编译脚本功能开发中...", severity="warning")
+        # 打开生成进度界面
+        from src.screens.generation_screen import GenerationScreen
+        
+        result = await self.app.push_screen_wait(
+            GenerationScreen(self.config, self.project_dir)
+        )
+        
+        if result:
+            self.app.notify("脚本生成成功！", severity="information")
+        else:
+            self.app.notify("脚本生成失败", severity="error")
