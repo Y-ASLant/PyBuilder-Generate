@@ -78,8 +78,7 @@ class PluginSelectorScreen(Screen):
         with Container(id="plugin-container"):
             yield Static("选择 Nuitka 插件", id="screen-title")
             yield Static(
-                "选择需要启用的插件以确保第三方库的兼容性",
-                id="plugin-description"
+                "选择需要启用的插件以确保第三方库的兼容性", id="plugin-description"
             )
 
             # 常用插件列表
@@ -89,17 +88,20 @@ class PluginSelectorScreen(Screen):
                 ("TensorFlow - 深度学习框架", "tensorflow"),
                 ("Matplotlib - 数据可视化", "matplotlib"),
                 ("Tkinter - GUI工具包", "tk-inter"),
-                ("PyQt/PySide - Qt GUI框架", "qt-plugins"),
+                ("PySide6 - Qt6 GUI框架", "pyside6"),
+                ("PyQt5 - Qt5 GUI框架", "pyqt5"),
                 ("Multiprocessing - 多进程支持", "multiprocessing"),
                 ("Anti-bloat - 移除不必要依赖", "anti-bloat"),
-                ("PySide6 - Qt6 GUI框架", "pyside6"),
                 ("Pandas - 数据分析库", "pandas"),
                 ("Pillow - 图像处理库", "pillow"),
                 ("SciPy - 科学计算库", "scipy"),
             ]
 
             yield SelectionList[str](
-                *[(name, value, value in self.selected_plugins) for name, value in common_plugins],
+                *[
+                    (name, value, value in self.selected_plugins)
+                    for name, value in common_plugins
+                ],
                 id="plugins-list",
             )
 
