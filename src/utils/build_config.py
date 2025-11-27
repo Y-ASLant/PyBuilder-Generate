@@ -31,6 +31,11 @@ DEFAULT_BUILD_CONFIG = {
     # PyInstaller特有
     "clean": True,
     "debug": False,
+    "contents_directory": ".",
+    "uac_admin": False,
+    "hidden_imports": "",
+    "exclude_modules": "",
+    "add_data": "",
     "plugins": [],
     "exclude_packages": [],
 }
@@ -163,7 +168,7 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             )
             lines.append(f"lto: {str(config.get('lto', False)).lower()}\n")
             lines.append(f"jobs: {config.get('jobs', 4)}\n")
-            python_flag = config.get('python_flag', '')
+            python_flag = config.get("python_flag", "")
             if python_flag:
                 lines.append(f"python_flag: {python_flag}\n")
             lines.append(f"compiler: {config.get('compiler', 'msvc')}\n")
@@ -175,6 +180,16 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             lines.append(
                 f"show_progressbar: {str(config.get('show_progressbar', True)).lower()}\n"
             )
+            lines.append(
+                f"contents_directory: {config.get('contents_directory', '.')}\n"
+            )
+            lines.append(f"uac_admin: {str(config.get('uac_admin', False)).lower()}\n")
+            if config.get("hidden_imports"):
+                lines.append(f"hidden_imports: {config.get('hidden_imports')}\n")
+            if config.get("exclude_modules"):
+                lines.append(f"exclude_modules: {config.get('exclude_modules')}\n")
+            if config.get("add_data"):
+                lines.append(f"add_data: {config.get('add_data')}\n")
 
         lines.append("\n")
 

@@ -17,7 +17,7 @@ onefile: false
 show_console: true
 standalone: true
 remove_output: true
-show_progress: true
+show_progress: false
 lto: false
 jobs: 16
 compiler: msvc

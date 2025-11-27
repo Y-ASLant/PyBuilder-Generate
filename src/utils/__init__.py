@@ -11,6 +11,7 @@ from src.utils.build_config import (
     get_build_config_path,
     DEFAULT_BUILD_CONFIG,
 )
+from src.utils.script_generator import generate_build_script
 
 __all__ = [
     "resize_terminal",
@@ -23,4 +24,5 @@ __all__ = [
     "validate_build_config",
     "get_build_config_path",
     "DEFAULT_BUILD_CONFIG",
+    "generate_build_script",
 ]
