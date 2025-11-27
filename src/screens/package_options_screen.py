@@ -302,7 +302,7 @@ class PackageOptionsScreen(Screen):
             # 右列第3行：显示控制台窗口
             right_widgets.append(
                 self._create_switch_widget(
-                    "console-switch", "显示控制台窗口 (Windows)", False, "show_console"
+                    "console-switch", "显示终端窗口 (Windows)", False, "show_console"
                 )
             )
             # 右列第4行：移除构建文件
