@@ -37,7 +37,7 @@ def build():
     separator = "-" * width
     start_time = time.time()
 
-    print(f"{Color.CYAN}{Color.BOLD}开始构建 {PROJECT_NAME} v{VERSION}{Color.RESET}")
+    print(f"{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION}{Color.RESET}")
     print(separator)
 
     # 构建 PyInstaller 命令
@@ -59,10 +59,10 @@ def build():
     ]
 
     # 执行构建
-    print(f"{Color.GRAY}执行命令:{Color.RESET}")
+    print(f"{Color.GRAY}Command:{Color.RESET}")
     print(f"{Color.GRAY}" + " ".join(cmd) + f"{Color.RESET}")
     print(separator)
-    print(f"{Color.YELLOW}正在执行构建，请稍候...{Color.RESET}")
+    print(f"{Color.YELLOW}Building, please wait...{Color.RESET}")
     print()
 
     try:
@@ -71,29 +71,29 @@ def build():
         elapsed_time = time.time() - start_time
         minutes = int(elapsed_time // 60)
         seconds = int(elapsed_time % 60)
-        print(f"{Color.GREEN}{Color.BOLD}构建成功！{Color.RESET}")
+        print(f"{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}")
         # 清理 .spec 文件
         spec_file = f"{PROJECT_NAME}.spec"
         if os.path.exists(spec_file):
             os.remove(spec_file)
-            print(f"{Color.GRAY}已清理: {spec_file}{Color.RESET}")
+            print(f"{Color.GRAY}Cleaned: {spec_file}{Color.RESET}")
         abs_output = os.path.abspath(OUTPUT_DIR)
-        print(f"{Color.GREEN}输出目录: {abs_output}{Color.RESET}")
+        print(f"{Color.GREEN}Output: {abs_output}{Color.RESET}")
         if minutes > 0:
-            print(f"{Color.CYAN}本次构建时长: {minutes}分{seconds}秒{Color.RESET}")
+            print(f"{Color.CYAN}Build time: {minutes}m {seconds}s{Color.RESET}")
         else:
-            print(f"{Color.CYAN}本次构建时长: {seconds}秒{Color.RESET}")
+            print(f"{Color.CYAN}Build time: {seconds}s{Color.RESET}")
         return 0
     except subprocess.CalledProcessError as e:
         print(separator)
         print(
-            f"{Color.RED}{Color.BOLD}构建失败: {Color.RESET}{Color.RED}{e}{Color.RESET}"
+            f"{Color.RED}{Color.BOLD}Build failed: {Color.RESET}{Color.RED}{e}{Color.RESET}"
         )
         return 1
     except Exception as e:
         print(separator)
         print(
-            f"{Color.RED}{Color.BOLD}发生错误: {Color.RESET}{Color.RED}{e}{Color.RESET}"
+            f"{Color.RED}{Color.BOLD}Error: {Color.RESET}{Color.RED}{e}{Color.RESET}"
         )
         return 1
 
