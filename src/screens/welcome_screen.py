@@ -3,6 +3,7 @@
 """
 
 import pyfiglet
+from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
@@ -31,77 +32,7 @@ def generate_logo(text="PyBuilder", font="big"):
 class WelcomeScreen(Screen):
     """欢迎屏幕"""
 
-    CSS = """
-    WelcomeScreen {
-        align: center middle;
-        overflow: hidden;
-    }
-    
-    #welcome-container {
-        width: 70;
-        height: auto;
-        padding: 1 3;
-    }
-    
-    #logo {
-        width: 100%;
-        height: auto;
-        color: $accent;
-        text-align: center;
-        text-style: bold;
-    }
-    
-    #title {
-        width: 100%;
-        height: auto;
-        align: center middle;
-        margin: 1 0 0 0;
-    }
-    
-    #title Link {
-        color: $primary;
-        text-style: bold;
-        text-align: center;
-    }
-    
-    #title Link:hover {
-        color: $accent;
-        text-style: bold underline;
-    }
-    
-    #subtitle {
-        width: 100%;
-        height: auto;
-        color: $text-muted;
-        text-align: center;
-        margin: 0 0 1 0;
-    }
-    
-    #description {
-        width: 100%;
-        height: auto;
-        color: $text;
-        text-align: center;
-        margin: 0 0 1 0;
-    }
-    
-    .button-container {
-        width: 100%;
-        height: auto;
-        align: center middle;
-        margin: 0;
-    }
-    
-    .button-row {
-        width: auto;
-        height: auto;
-        margin: 0;
-    }
-    
-    Button {
-        margin: 0 1;
-    }
-    """
+    CSS_PATH = Path(__file__).parent.parent / "style" / "welcome_screen.tcss"
 
     def compose(self) -> ComposeResult:
         """创建欢迎界面组件"""

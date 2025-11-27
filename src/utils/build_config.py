@@ -37,6 +37,12 @@ DEFAULT_BUILD_CONFIG = {
     "hidden_imports": "",
     "exclude_modules": "",
     "add_data": "",
+    "add_binary": "",
+    "splash_image": "",
+    "collect_submodules": "",
+    "collect_data": "",
+    "collect_binaries": "",
+    "collect_all": "",
     "plugins": [],
     "exclude_packages": [],
 }
@@ -190,8 +196,22 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
                 lines.append(f"hidden_imports: {config.get('hidden_imports')}\n")
             if config.get("exclude_modules"):
                 lines.append(f"exclude_modules: {config.get('exclude_modules')}\n")
+            if config.get("collect_submodules"):
+                lines.append(
+                    f"collect_submodules: {config.get('collect_submodules')}\n"
+                )
+            if config.get("collect_data"):
+                lines.append(f"collect_data: {config.get('collect_data')}\n")
+            if config.get("collect_binaries"):
+                lines.append(f"collect_binaries: {config.get('collect_binaries')}\n")
+            if config.get("collect_all"):
+                lines.append(f"collect_all: {config.get('collect_all')}\n")
             if config.get("add_data"):
                 lines.append(f"add_data: {config.get('add_data')}\n")
+            if config.get("add_binary"):
+                lines.append(f"add_binary: {config.get('add_binary')}\n")
+            if config.get("splash_image"):
+                lines.append(f"splash_image: {config.get('splash_image')}\n")
 
         lines.append("\n")
 

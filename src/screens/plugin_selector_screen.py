@@ -3,6 +3,7 @@
 用于选择Nuitka编译插件
 """
 
+from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Horizontal
@@ -13,56 +14,7 @@ from textual.binding import Binding
 class PluginSelectorScreen(Screen):
     """插件选择屏幕"""
 
-    CSS = """
-    PluginSelectorScreen {
-        align: center middle;
-        overflow: hidden;
-    }
-    
-    #plugin-container {
-        width: 80;
-        height: auto;
-        padding: 1 2;
-    }
-    
-    #screen-title {
-        width: 100%;
-        height: 1;
-        color: $primary;
-        text-align: center;
-        text-style: bold;
-        margin-bottom: 1;
-    }
-    
-    #plugin-description {
-        width: 100%;
-        height: auto;
-        color: $text-muted;
-        text-align: center;
-        margin-bottom: 1;
-    }
-    
-    #plugins-list {
-        width: 100%;
-        height: 20;
-        border: solid $accent;
-        margin-bottom: 1;
-    }
-    
-    #button-container {
-        width: 100%;
-        height: auto;
-        layout: horizontal;
-        align: center middle;
-        margin-top: 1;
-    }
-    
-    Button {
-        margin: 0 2;
-        min-width: 16;
-        height: 3;
-    }
-    """
+    CSS_PATH = Path(__file__).parent.parent / "style" / "plugin_selector_screen.tcss"
 
     BINDINGS = [
         Binding("escape", "cancel", "取消"),

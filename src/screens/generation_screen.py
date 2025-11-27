@@ -18,61 +18,7 @@ from src.utils import generate_build_script
 class GenerationScreen(Screen):
     """脚本生成进度屏幕"""
 
-    CSS = """
-    GenerationScreen {
-        align: center middle;
-        background: $surface;
-    }
-    
-    #generation-container {
-        width: 60;
-        height: auto;
-        padding: 2 4;
-        background: $panel;
-        border: solid $accent;
-    }
-    
-    #generation-title {
-        width: 100%;
-        height: 1;
-        color: $primary;
-        text-align: center;
-        text-style: bold;
-        margin-bottom: 1;
-    }
-    
-    #generation-status {
-        width: 100%;
-        height: 1;
-        color: $text;
-        text-align: center;
-        margin: 1 0;
-    }
-    
-    #generation-result {
-        width: 100%;
-        height: auto;
-        color: $success;
-        text-align: center;
-        margin-top: 1;
-    }
-    
-    LoadingIndicator {
-        height: 3;
-        margin: 1 0;
-    }
-    
-    #button-container {
-        width: 100%;
-        height: auto;
-        align: center middle;
-        margin-top: 2;
-    }
-    
-    #button-container Button {
-        margin: 0 1;
-    }
-    """
+    CSS_PATH = Path(__file__).parent.parent / "style" / "generation_screen.tcss"
 
     BINDINGS = [
         Binding("escape", "close", "关闭", show=False),

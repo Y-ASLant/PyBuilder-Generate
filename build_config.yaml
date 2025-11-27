@@ -8,19 +8,22 @@ entry_file: main.py
 icon_file: assets/app.ico
 
 # 构建配置
-build_tool: nuitka
+build_tool: pyinstaller
 output_dir: build
 quiet_mode: true
 
 # 打包选项
 onefile: false
 show_console: true
-standalone: true
-remove_output: true
-show_progress: false
-lto: false
-jobs: 16
-compiler: msvc
+clean: true
+noconfirm: true
+debug: false
+show_progressbar: false
+contents_directory: lib
+uac_admin: false
+exclude_modules: nuitka
+collect_submodules: textual
+collect_data: pyfiglet
 
 # 排除的包
 exclude_packages:
