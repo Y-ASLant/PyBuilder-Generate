@@ -8,6 +8,19 @@ from pathlib import Path
 from typing import Dict, Any
 
 
+# 颜色类定义（用于生成的脚本）
+COLOR_CLASS_CODE = """# ANSI 颜色代码
+class Color:
+    RESET = '\\033[0m'
+    BOLD = '\\033[1m'
+    GREEN = '\\033[92m'
+    YELLOW = '\\033[93m'
+    RED = '\\033[91m'
+    CYAN = '\\033[96m'
+    GRAY = '\\033[90m'
+"""
+
+
 def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     """生成 Nuitka 构建脚本"""
     lines = []
@@ -25,16 +38,7 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("import time")
     lines.append("")
     lines.append("")
-    lines.append("# ANSI 颜色代码")
-    lines.append("class Color:")
-    lines.append("    RESET = '\\033[0m'")
-    lines.append("    BOLD = '\\033[1m'")
-    lines.append("    GREEN = '\\033[92m'")
-    lines.append("    YELLOW = '\\033[93m'")
-    lines.append("    RED = '\\033[91m'")
-    lines.append("    CYAN = '\\033[96m'")
-    lines.append("    GRAY = '\\033[90m'")
-    lines.append("")
+    lines.append(COLOR_CLASS_CODE)
     lines.append("")
 
     # 配置部分
@@ -211,16 +215,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("import os")
     lines.append("")
     lines.append("")
-    lines.append("# ANSI 颜色代码")
-    lines.append("class Color:")
-    lines.append("    RESET = '\\033[0m'")
-    lines.append("    BOLD = '\\033[1m'")
-    lines.append("    GREEN = '\\033[92m'")
-    lines.append("    YELLOW = '\\033[93m'")
-    lines.append("    RED = '\\033[91m'")
-    lines.append("    CYAN = '\\033[96m'")
-    lines.append("    GRAY = '\\033[90m'")
-    lines.append("")
+    lines.append(COLOR_CLASS_CODE)
     lines.append("")
 
     # 配置部分
@@ -323,35 +318,20 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     if runtime_tmpdir and onefile_mode:
         lines.append(f"        '--runtime-tmpdir={runtime_tmpdir}',")
 
-    # 目标架构
-    target_arch = config.get("target_architecture", "")
-    if target_arch:
-        lines.append(f"        '--target-architecture={target_arch}',")
+    # 系统特性参数（使用字典映射）
+    platform_params = {
+        "target_architecture": "--target-architecture",
+        "win_version_file": "--version-file",
+        "win_manifest": "--manifest",
+        "osx_bundle_identifier": "--osx-bundle-identifier",
+        "osx_entitlements_file": "--osx-entitlements-file",
+        "codesign_identity": "--codesign-identity",
+    }
 
-    # Windows 版本信息文件
-    win_version_file = config.get("win_version_file", "")
-    if win_version_file:
-        lines.append(f"        '--version-file={win_version_file}',")
-
-    # Windows Manifest 文件
-    win_manifest = config.get("win_manifest", "")
-    if win_manifest:
-        lines.append(f"        '--manifest={win_manifest}',")
-
-    # macOS Bundle 标识符
-    osx_bundle_id = config.get("osx_bundle_identifier", "")
-    if osx_bundle_id:
-        lines.append(f"        '--osx-bundle-identifier={osx_bundle_id}',")
-
-    # macOS 权限文件
-    osx_entitlements = config.get("osx_entitlements_file", "")
-    if osx_entitlements:
-        lines.append(f"        '--osx-entitlements-file={osx_entitlements}',")
-
-    # macOS 代码签名
-    codesign_identity = config.get("codesign_identity", "")
-    if codesign_identity:
-        lines.append(f"        '--codesign-identity={codesign_identity}',")
+    for config_key, param_name in platform_params.items():
+        value = config.get(config_key, "")
+        if value:
+            lines.append(f"        '{param_name}={value}',")
 
     # 隐藏导入
     hidden_imports = config.get("hidden_imports", "")
