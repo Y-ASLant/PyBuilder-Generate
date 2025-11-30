@@ -144,10 +144,9 @@ PyBuild-Generate/
 ## 依赖
 
 - Python >= 3.12
-- textual >= 0.47.0
-- rich >= 13.0.0
-- pydantic >= 2.0.0
+- textual >= 6.6.0
 - pyfiglet >= 1.0.4
+- loguru >= 0.7.3
 - nuitka >= 2.8.6
 - pyinstaller >= 6.17.0
 
