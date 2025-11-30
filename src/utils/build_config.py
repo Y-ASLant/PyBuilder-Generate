@@ -43,6 +43,14 @@ DEFAULT_BUILD_CONFIG = {
     "collect_data": "",
     "collect_binaries": "",
     "collect_all": "",
+    "runtime_tmpdir": "",
+    "target_architecture": "",
+    # 系统特性
+    "win_version_file": "",
+    "win_manifest": "",
+    "osx_bundle_identifier": "",
+    "osx_entitlements_file": "",
+    "codesign_identity": "",
     "plugins": [],
     "exclude_packages": [],
 }
@@ -212,6 +220,26 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
                 lines.append(f"add_binary: {config.get('add_binary')}\n")
             if config.get("splash_image"):
                 lines.append(f"splash_image: {config.get('splash_image')}\n")
+            if config.get("runtime_tmpdir"):
+                lines.append(f"runtime_tmpdir: {config.get('runtime_tmpdir')}\n")
+            if config.get("target_architecture"):
+                lines.append(
+                    f"target_architecture: {config.get('target_architecture')}\n"
+                )
+            if config.get("win_version_file"):
+                lines.append(f"win_version_file: {config.get('win_version_file')}\n")
+            if config.get("win_manifest"):
+                lines.append(f"win_manifest: {config.get('win_manifest')}\n")
+            if config.get("osx_bundle_identifier"):
+                lines.append(
+                    f"osx_bundle_identifier: {config.get('osx_bundle_identifier')}\n"
+                )
+            if config.get("osx_entitlements_file"):
+                lines.append(
+                    f"osx_entitlements_file: {config.get('osx_entitlements_file')}\n"
+                )
+            if config.get("codesign_identity"):
+                lines.append(f"codesign_identity: {config.get('codesign_identity')}\n")
 
         lines.append("\n")
 

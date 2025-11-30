@@ -21,9 +21,9 @@ debug: false
 show_progressbar: false
 contents_directory: lib
 uac_admin: false
-exclude_modules: nuitka
 collect_submodules: textual
 collect_data: pyfiglet
+add_data: src/style;src/style docs;docs
 
 # 排除的包
 exclude_packages:

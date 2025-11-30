@@ -8,6 +8,19 @@ from pathlib import Path
 from typing import Dict, Any
 
 
+# 颜色类定义（用于生成的脚本）
+COLOR_CLASS_CODE = """# ANSI 颜色代码
+class Color:
+    RESET = '\\033[0m'
+    BOLD = '\\033[1m'
+    GREEN = '\\033[92m'
+    YELLOW = '\\033[93m'
+    RED = '\\033[91m'
+    CYAN = '\\033[96m'
+    GRAY = '\\033[90m'
+"""
+
+
 def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     """生成 Nuitka 构建脚本"""
     lines = []
@@ -25,16 +38,7 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("import time")
     lines.append("")
     lines.append("")
-    lines.append("# ANSI 颜色代码")
-    lines.append("class Color:")
-    lines.append("    RESET = '\\033[0m'")
-    lines.append("    BOLD = '\\033[1m'")
-    lines.append("    GREEN = '\\033[92m'")
-    lines.append("    YELLOW = '\\033[93m'")
-    lines.append("    RED = '\\033[91m'")
-    lines.append("    CYAN = '\\033[96m'")
-    lines.append("    GRAY = '\\033[90m'")
-    lines.append("")
+    lines.append(COLOR_CLASS_CODE)
     lines.append("")
 
     # 配置部分
@@ -211,22 +215,15 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("import os")
     lines.append("")
     lines.append("")
-    lines.append("# ANSI 颜色代码")
-    lines.append("class Color:")
-    lines.append("    RESET = '\\033[0m'")
-    lines.append("    BOLD = '\\033[1m'")
-    lines.append("    GREEN = '\\033[92m'")
-    lines.append("    YELLOW = '\\033[93m'")
-    lines.append("    RED = '\\033[91m'")
-    lines.append("    CYAN = '\\033[96m'")
-    lines.append("    GRAY = '\\033[90m'")
-    lines.append("")
+    lines.append(COLOR_CLASS_CODE)
     lines.append("")
 
     # 配置部分
     lines.append("# 构建配置")
     lines.append(f"PROJECT_NAME = '{config['project_name']}'")
     lines.append(f"VERSION = '{config['version']}'")
+    if config.get("company_name"):
+        lines.append(f"COMPANY_NAME = '{config['company_name']}'")
     lines.append(f"ENTRY_FILE = '{config['entry_file']}'")
     if config.get("icon_file"):
         lines.append(f"ICON_FILE = '{config['icon_file']}'")
@@ -315,6 +312,26 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     # UAC 管理员权限
     if config.get("uac_admin", False):
         lines.append("        '--uac-admin',")
+
+    # 运行时临时目录（仅单文件模式）
+    runtime_tmpdir = config.get("runtime_tmpdir", "")
+    if runtime_tmpdir and onefile_mode:
+        lines.append(f"        '--runtime-tmpdir={runtime_tmpdir}',")
+
+    # 系统特性参数（使用字典映射）
+    platform_params = {
+        "target_architecture": "--target-architecture",
+        "win_version_file": "--version-file",
+        "win_manifest": "--manifest",
+        "osx_bundle_identifier": "--osx-bundle-identifier",
+        "osx_entitlements_file": "--osx-entitlements-file",
+        "codesign_identity": "--codesign-identity",
+    }
+
+    for config_key, param_name in platform_params.items():
+        value = config.get(config_key, "")
+        if value:
+            lines.append(f"        '{param_name}={value}',")
 
     # 隐藏导入
     hidden_imports = config.get("hidden_imports", "")

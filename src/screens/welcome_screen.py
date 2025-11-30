@@ -54,9 +54,9 @@ class WelcomeScreen(Screen):
                 with Horizontal(classes="button-row"):
                     yield Button("开始使用", variant="success", id="start", flat=True)
                     yield Button(
-                        "加载配置",
+                        "帮助文档",
                         variant="primary",
-                        id="load",
+                        id="help",
                         flat=True,
                     )
 
@@ -72,6 +72,8 @@ class WelcomeScreen(Screen):
 
             self.app.push_screen(ProjectSelectorScreen())
 
-        elif button_id == "load":
-            self.app.notify("加载配置功能开发中...", severity="warning")
-            # TODO: 实现配置加载
+        elif button_id == "help":
+            # 跳转到帮助文档屏幕
+            from src.screens.help_screen import HelpScreen
+
+            self.app.push_screen(HelpScreen())

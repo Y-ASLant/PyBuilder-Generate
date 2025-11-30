@@ -1,0 +1,6 @@
+/* 帮助文档屏幕样式 */
+
+#help-viewer {
+    width: 100%;
+    height: 100%;
+}

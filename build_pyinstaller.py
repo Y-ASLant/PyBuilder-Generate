@@ -25,6 +25,7 @@ class Color:
 # 构建配置
 PROJECT_NAME = 'PyBuilder'
 VERSION = '1.0.0'
+COMPANY_NAME = 'ASLant'
 ENTRY_FILE = 'main.py'
 ICON_FILE = 'assets/app.ico'
 OUTPUT_DIR = 'build'
@@ -39,6 +40,10 @@ def build():
     print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION}{Color.RESET}')
     print(separator)
 
+    # 添加数据文件（根据操作系统使用不同分隔符）
+    import platform
+    data_separator = ';' if platform.system() == 'Windows' else ':'
+
     # 构建 PyInstaller 命令
     cmd = [
         sys.executable,
@@ -51,9 +56,10 @@ def build():
         '--noconfirm',
         '--log-level=WARN',
         f'--icon={ICON_FILE}',
-        '--exclude-module=nuitka',
         '--collect-submodules=textual',
         '--collect-data=pyfiglet',
+        f'--add-data={os.path.join('src', 'style')}{data_separator}{os.path.join('src', 'style')}',
+        f'--add-data={'docs'}{data_separator}{'docs'}',
         ENTRY_FILE,
     ]
 
