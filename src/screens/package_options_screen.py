@@ -96,9 +96,10 @@ class PackageOptionsScreen(Screen):
         if self.config.get("build_tool") == "pyinstaller":
             is_onefile = self.config.get("onefile", True)
             try:
-                # 单文件模式：禁用内部目录，启用启动画面
+                # 单文件模式：禁用内部目录，启用启动画面和运行时临时目录
                 self.query_one("#contents-dir-input", Input).disabled = is_onefile
                 self.query_one("#splash-image-input", Input).disabled = not is_onefile
+                self.query_one("#runtime-tmpdir-input", Input).disabled = not is_onefile
             except Exception:
                 pass
 
@@ -261,7 +262,7 @@ class PackageOptionsScreen(Screen):
             )
             switches_row = Horizontal(switch1, switch2, classes="switches-row")
 
-            # 基本选项 - 2个输入框横向排列
+            # 基本选项 - 第1行输入框（2个）
             input1 = self._create_input_widget(
                 "contents-dir-input",
                 "内部目录名称:",
@@ -274,11 +275,24 @@ class PackageOptionsScreen(Screen):
                 "splash_image",
                 "例如: splash.png",
             )
-            inputs_row = Horizontal(input1, input2, classes="inputs-row")
+            inputs_row1 = Horizontal(input1, input2, classes="inputs-row")
 
-            # 基本选项标签页内容（垂直布局：开关行 + 输入框行）
+            # 基本选项 - 第2行输入框（1个）
+            input3 = self._create_input_widget(
+                "runtime-tmpdir-input",
+                "运行时临时目录 (仅单文件模式):",
+                "runtime_tmpdir",
+                "例如: /tmp/myapp",
+            )
+            input4 = Vertical(
+                Label("", classes="field-label"),  # 占位
+                classes="field-group",
+            )
+            inputs_row2 = Horizontal(input3, input4, classes="inputs-row")
+
+            # 基本选项标签页内容（垂直布局：1行开关 + 2行输入框）
             basic_content = Vertical(
-                switches_row, inputs_row, classes="basic-options-content"
+                switches_row, inputs_row1, inputs_row2, classes="basic-options-content"
             )
 
             # 高级选项 - 第1行开关（2个）
@@ -299,26 +313,10 @@ class PackageOptionsScreen(Screen):
             )
             switches_row2 = Horizontal(switch5, switch6, classes="switches-row")
 
-            # 高级选项 - 第3行输入框（1个）
-            advanced_input1 = self._create_input_widget(
-                "runtime-tmpdir-input",
-                "运行时临时目录:",
-                "runtime_tmpdir",
-                "例如: /tmp/myapp (单文件模式)",
-            )
-            advanced_input2 = Vertical(
-                Label("", classes="field-label"),  # 占位
-                classes="field-group",
-            )
-            advanced_inputs_row = Horizontal(
-                advanced_input1, advanced_input2, classes="inputs-row"
-            )
-
-            # 高级选项标签页内容（垂直布局：2行开关 + 1行输入框）
+            # 高级选项标签页内容（垂直布局：2行开关）
             advanced_content = Vertical(
                 switches_row1,
                 switches_row2,
-                advanced_inputs_row,
                 classes="basic-options-content",
             )
 
@@ -645,6 +643,11 @@ class PackageOptionsScreen(Screen):
                 # 更新启动画面图片状态（onefile时启用，非onefile时禁用）
                 splash_image_input = self.query_one("#splash-image-input", Input)
                 splash_image_input.disabled = not event.value
+                # 注意：不清空值，保留用户输入，只是禁用输入框
+
+                # 更新运行时临时目录状态（onefile时启用，非onefile时禁用）
+                runtime_tmpdir_input = self.query_one("#runtime-tmpdir-input", Input)
+                runtime_tmpdir_input.disabled = not event.value
                 # 注意：不清空值，保留用户输入，只是禁用输入框
             except Exception:
                 pass

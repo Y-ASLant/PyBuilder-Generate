@@ -13,18 +13,17 @@ output_dir: build
 quiet_mode: true
 
 # 打包选项
-onefile: true
+onefile: false
 show_console: true
 clean: true
 noconfirm: true
 debug: false
 show_progressbar: true
-contents_directory: .
+contents_directory: lib
 uac_admin: false
 collect_submodules: textual
 collect_data: pyfiglet
 add_data: src/style;src/style
-runtime_tmpdir: /tmo/ASLant
 
 # 排除的包
 exclude_packages:
