@@ -14,8 +14,9 @@ ToastRack {
 
 #options-container {
     width: 100;
-    height: auto;
+    height: 100%;
     padding: 1 2;
+    layout: vertical;
 }
 
 #screen-title {
@@ -38,7 +39,7 @@ ToastRack {
 
 #options-fields {
     width: 100%;
-    height: auto;
+    height: 1fr;
 }
 
 .options-columns {
@@ -121,15 +122,16 @@ Button {
 /* 标签页样式 */
 #pyinstaller-tabs {
     width: 100%;
-    height: auto;
+    height: 1fr;
 }
 
 TabbedContent {
-    height: auto;
+    height: 100%;
 }
 
 TabPane {
     height: auto;
+    min-height: 100%;
     padding: 1;
 }
 
