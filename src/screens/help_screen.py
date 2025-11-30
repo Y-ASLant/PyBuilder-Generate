@@ -5,49 +5,33 @@
 from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Static, Button, Markdown
+from textual.widgets import MarkdownViewer
 
 
 class HelpScreen(Screen):
     """帮助文档屏幕"""
 
     CSS_PATH = Path(__file__).parent.parent / "style" / "help_screen.tcss"
+    # 缓存文档路径，避免重复计算
+    HELP_PATH = Path(__file__).parent.parent.parent / "docs" / "Tutorial.md"
+
+    BINDINGS = [
+        ("escape", "app.pop_screen", "返回"),
+    ]
 
     def compose(self) -> ComposeResult:
         """创建帮助文档界面组件"""
-        with Container(id="help-container"):
-            # 内容容器
-            with VerticalScroll(id="help-content"):
-                yield Static("加载中...", id="help-loading")
+        yield MarkdownViewer(
+            id="help-viewer",
+            show_table_of_contents=True,
+        )
 
-            # 返回按钮
-            with Horizontal(id="help-buttons"):
-                yield Button("返回", variant="primary", id="back-btn", flat=True)
-
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """挂载后加载文档"""
-        self.load_help()
-
-    def load_help(self) -> None:
-        """加载 Tutorial.md"""
-        project_root = Path(__file__).parent.parent.parent
+        viewer = self.query_one("#help-viewer", MarkdownViewer)
         try:
-            help_path = project_root / "docs" / "Tutorial.md"
-            if help_path.exists():
-                content = help_path.read_text(encoding="utf-8")
-                # 移除加载提示
-                loading = self.query_one("#help-loading", Static)
-                loading.remove()
-                # 添加 Markdown 内容
-                scroll = self.query_one("#help-content", VerticalScroll)
-                scroll.mount(Markdown(content, id="help-markdown"))
-            else:
-                self.query_one("#help-loading", Static).update("Tutorial.md 不存在")
+            await viewer.go(self.HELP_PATH)
         except Exception as e:
-            self.query_one("#help-loading", Static).update(f"加载失败: {e}")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """处理按钮点击事件"""
-        if event.button.id == "back-btn":
-            self.app.pop_screen()
+            viewer.document.update(
+                f"# 错误\n\n无法加载文档: {e}\n\n路径: {self.HELP_PATH}"
+            )
