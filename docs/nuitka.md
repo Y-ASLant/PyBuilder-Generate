@@ -8,9 +8,9 @@
 ## 📊 实现概况
 
 - **总参数数量**: ~180
-- **已实现**: 13 个 (7%)
-- **部分实现**: 1 个 (1%)
-- **未实现**: 166 个 (92%)
+- **已实现**: 18 个 (10%)
+- **部分实现**: 0 个 (0%)
+- **未实现**: 162 个 (90%)
 
 > **说明**: 
 > - ✅ 项目现已支持 Nuitka 官方推荐的 `--mode=MODE` 参数
@@ -50,8 +50,8 @@
 | 参数 | 说明 | 状态 | 项目配置 |
 |------|------|------|----------|
 | `--output-dir=DIR` | 指定输出目录 | ✅ | `output_dir` |
-| `--output-filename=NAME` | 指定输出文件名 | ❌ | - |
-| `--output-folder-name=NAME` | 指定分发文件夹名 | ❌ | - |
+| `--output-filename=NAME` | 指定输出文件名 | ✅ | `project_name` |
+| `--output-folder-name=NAME` | 指定分发文件夹名 (standalone) | ✅ | `project_name.dist` |
 | `--remove-output` | 移除构建目录 | ✅ | `remove_output` |
 
 ### 编译器选择
@@ -85,13 +85,15 @@
 
 ### 跟随控制
 
-| 参数 | 说明 | 状态 |
-|------|------|------|
-| `--follow-imports` | 跟随所有导入 | ❌ |
-| `--follow-import-to=MODULE` | 跟随特定导入 | ❌ |
-| `--nofollow-import-to=MODULE` | 不跟随特定导入 | ❌ |
-| `--nofollow-imports` | 不跟随导入 | ❌ |
-| `--follow-stdlib` | 跟随标准库 | ❌ |
+| 参数 | 说明 | 状态 | 项目配置 |
+|------|------|------|----------|
+| `--follow-imports` | 跟随所有导入 | ✅ | `follow_imports` |
+| `--follow-import-to=MODULE` | 跟随特定导入 | ❌ | - |
+| `--nofollow-import-to=MODULE` | 不跟随特定导入 | ❌ | - |
+| `--nofollow-imports` | 不跟随导入 | ❌ | - |
+| `--follow-stdlib` | 跟随标准库 | ❌ | - |
+
+> **重要**: 推荐启用 `--follow-imports` 以自动包含所有导入的模块，避免运行时导入错误
 
 ### 插件系统
 
@@ -193,13 +195,20 @@
 
 | 参数 | 说明 | 状态 | 项目配置 |
 |------|------|------|----------|
-| `--company-name=NAME` | 公司名称 | ✅ | `company_name` |
-| `--product-name=NAME` | 产品名称 | ❌ | - |
-| `--file-version=VERSION` | 文件版本 | ⚠️ | `version` |
-| `--product-version=VERSION` | 产品版本 | ⚠️ | `version` |
+| `--company-name=NAME` | 公司名称（通用） | ❌ | - |
+| `--windows-company-name=NAME` | Windows 公司名称 | ✅ | `company_name` |
+| `--product-name=NAME` | 产品名称（通用） | ❌ | - |
+| `--windows-product-name=NAME` | Windows 产品名称 | ❌ | - |
+| `--file-version=VERSION` | 文件版本（通用） | ❌ | - |
+| `--windows-file-version=VER` | Windows 文件版本 | ✅ | `version` |
+| `--product-version=VERSION` | 产品版本（通用） | ❌ | - |
+| `--windows-product-version=VER` | Windows 产品版本 | ✅ | `version` |
 | `--file-description=DESC` | 文件描述 | ❌ | - |
+| `--windows-file-description=DESC` | Windows 文件描述 | ❌ | - |
 | `--copyright=TEXT` | 版权信息 | ❌ | - |
 | `--trademarks=TEXT` | 商标信息 | ❌ | - |
+
+> 注意：项目使用 Windows 特定参数而非通用参数
 
 ---
 
@@ -337,8 +346,10 @@
 
 | 参数 | 说明 | 状态 | 项目配置 |
 |------|------|------|----------|
-| `--no-pyi-file` | 不生成 .pyi 文件 | ✅ | `no_pyi_file` |
+| `--no-pyi-file` | 不生成 .pyi 文件 (仅 module/package) | ✅ | `no_pyi_file` |
 | `--no-pyi-stubs` | 不使用 stubgen | ❌ | - |
+
+> **注意**: `--no-pyi-file` 只在 `module` 或 `package` 模式下有效
 
 ---
 
@@ -544,23 +555,27 @@ quiet_mode: false       # --quiet ✅
    - Linux: `--linux-*`
    - 跨平台时需要条件判断
 
+2. **模式特定参数**
+   - `--no-pyi-file`: 仅在 `module` 或 `package` 模式下有效
+   - 在其他模式（`standalone`, `onefile`, `app` 等）下使用会产生警告并被忽略
+
 3. **插件命名变化**
    - 某些插件名称可能在不同版本有变化
    - 建议使用 `--plugin-list` 查看当前可用插件
 
 ### 项目实现状态说明
 
-**已完整实现** (13个)：
+**已完整实现** (18个)：
 - 编译模式：`mode`
-- 输出控制：`output_dir`, `remove_output`
+- 输出控制：`output_dir`, `output-filename`, `output-folder-name`, `remove_output`, `quiet`, `show-progress`
+- 模块控制：`follow-imports`, `no-pyi-file`
 - 编译器选择：`clang`, `mingw64`, `msvc`
 - 性能选项：`jobs`, `python_flag`, `lto`
-- Windows 特定：`disable-console`, `windows-icon-from-ico`, `company-name`
+- Windows 特定：`disable-console`, `windows-icon-from-ico`
+- Windows 版本信息：`windows-company-name`, `windows-file-version`, `windows-product-version`
 - 插件系统：`enable-plugins`
-- 输出控制：`quiet`, `show-progress`, `no-pyi-file`
 
-**部分实现** (1个)：
-- 版本信息：使用同一个 `version` 字段同时设置 file-version 和 product-version
+**部分实现** (0个)
 
 **注意**：
 - ✅ 项目现已支持 `mode` 配置字段，直接使用 `--mode=MODE` 参数
@@ -624,6 +639,29 @@ quiet_mode: false       # --quiet ✅
 
 ## 🔄 更新历史
 
+### v1.3 (2025-12-05)
+- ✅ **实现模块跟随支持** ⭐ 重要
+  - 实现 `--follow-imports` 参数，自动包含所有导入的模块
+  - 解决 "You did not specify to follow or include anything" 警告
+  - 默认启用，避免运行时导入错误
+  - 在基本选项界面中添加"跟随导入"开关
+- ✅ **实现输出文件名控制参数**
+  - 实现 `--output-filename` 参数，使用 `project_name` 作为输出文件名
+  - 实现 `--output-folder-name` 参数，在 standalone 模式下使用 `project_name.dist` 作为文件夹名
+- ✅ **更正 Windows 版本信息参数**
+  - 明确区分通用参数和 Windows 特定参数
+  - 标注 `--windows-company-name`, `--windows-file-version`, `--windows-product-version` 已实现
+  - 移除错误的"部分实现"标注
+- 🐛 **修复 `--no-pyi-file` 参数警告**
+  - 修正参数仅在 `module` 或 `package` 模式下添加
+  - 避免在其他模式下产生 Nuitka 警告
+  - 将该开关移到基本选项界面，并在不支持的模式下自动禁用显示为灰色
+  - 更新文档说明参数的适用范围
+- 🎨 **UI 优化**
+  - 动态禁用/启用控件，根据模式自动调整可用性
+  - 禁用控件显示为半透明，提升用户体验
+- 📊 更新统计 (18 已实现 / 0 部分实现 / 162 未实现)
+
 ### v1.2 (2025-12-04)
 - ✅ **实现 `--mode` 参数完整支持**
   - 添加新的 `mode` 配置字段
@@ -631,12 +669,12 @@ quiet_mode: false       # --quiet ✅
   - 完全向后兼容旧配置
 - ✅ **实现 `--lto` 参数完整支持**
   - 支持 yes/no/auto 三种选项
-  - UI 中使用下拉选择替代开关，方便选择 auto 选项
   - 兼容旧的布尔值配置
+  - UI 使用 Select 下拉选择
 - 🛠️ **代码优化**
   - 简化 mode 处理逻辑
   - 增强代码可读性和维护性
-  - UI 组件优化，提升用户体验
+  - CSS 代码精简优化
 - 📊 更新统计 (13 已实现 / 1 部分实现 / 166 未实现)
 
 ### v1.1 (2025-12-04)
@@ -653,7 +691,7 @@ quiet_mode: false       # --quiet ✅
 
 ---
 
-**最后更新**: 2025-12-04  
+**最后更新**: 2025-12-05  
 **Nuitka 版本**: 2.8.9  
-**文档版本**: 1.2
+**文档版本**: 1.3
 

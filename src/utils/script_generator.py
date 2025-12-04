@@ -93,6 +93,11 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
 
     # 输出选项
     lines.append("        f'--output-dir={OUTPUT_DIR}',")
+    lines.append("        f'--output-filename={PROJECT_NAME}',")
+
+    # 输出文件夹名称（仅非 onefile 模式）
+    if mode == "standalone" or mode == "app-dist":
+        lines.append("        f'--output-folder-name={PROJECT_NAME}.dist',")
 
     # 控制台选项
     if not config.get("show_console", False):
@@ -140,9 +145,13 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     if config.get("remove_output", True):
         lines.append("        '--remove-output',")
 
-    # 不生成 .pyi 文件
-    if config.get("no_pyi_file", False):
+    # 不生成 .pyi 文件（仅 module 和 package 模式有效）
+    if config.get("no_pyi_file", False) and mode in ("module", "package"):
         lines.append("        '--no-pyi-file',")
+
+    # 跟随导入（自动包含所有导入的模块）
+    if config.get("follow_imports", True):
+        lines.append("        '--follow-imports',")
 
     # 插件
     plugins = config.get("plugins", [])

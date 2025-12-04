@@ -34,6 +34,7 @@ DEFAULT_BUILD_CONFIG = {
     "python_flag": "",  # 空字符串表示不使用，可选值: "-O", "no_asserts", "no_docstrings"
     "compiler": "msvc",
     "no_pyi_file": False,
+    "follow_imports": True,  # 跟随所有导入的模块
     # PyInstaller特有
     "clean": True,
     "noconfirm": False,
@@ -199,6 +200,9 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             lines.append(f"compiler: {config.get('compiler', 'msvc')}\n")
             lines.append(
                 f"no_pyi_file: {str(config.get('no_pyi_file', False)).lower()}\n"
+            )
+            lines.append(
+                f"follow_imports: {str(config.get('follow_imports', True)).lower()}\n"
             )
 
         # PyInstaller特有选项

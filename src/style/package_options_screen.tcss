@@ -71,6 +71,10 @@ ToastRack {
     margin: 0 1 0 0;
 }
 
+.field-switch:disabled {
+    opacity: 0.5;
+}
+
 .field-switch-label {
     color: $text;
     content-align: center middle;

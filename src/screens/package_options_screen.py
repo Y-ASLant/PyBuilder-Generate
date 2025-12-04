@@ -100,6 +100,10 @@ class PackageOptionsScreen(Screen):
 
         # 根据构庻工具动态生成选项（开关值已在创庻时设置）
         self._create_options_fields()
+        
+        # 如果是 Nuitka，根据模式设置 no-pyi-switch 状态
+        if self.config.get("build_tool") == "nuitka":
+            self._update_no_pyi_switch_state()
 
         # 如果是 PyInstaller，根据单文件模式设置输入框状态
         if self.config.get("build_tool") == "pyinstaller":
@@ -149,12 +153,16 @@ class PackageOptionsScreen(Screen):
         return Horizontal(
             Vertical(
                 Label(label1, classes="field-label"),
-                Button(id1.replace("-button", "..."), id=id1, variant="primary", flat=True),
+                Button(
+                    id1.replace("-button", "..."), id=id1, variant="primary", flat=True
+                ),
                 classes="field-group",
             ),
             Vertical(
                 Label(label2, classes="field-label"),
-                Button(id2.replace("-button", "..."), id=id2, variant="primary", flat=True),
+                Button(
+                    id2.replace("-button", "..."), id=id2, variant="primary", flat=True
+                ),
                 classes="field-group",
             ),
             classes="inputs-row",
@@ -163,6 +171,25 @@ class PackageOptionsScreen(Screen):
     def _create_switch_row(self, *switches):
         """创建开关行"""
         return Horizontal(*switches, classes="switches-row")
+    
+    def _update_no_pyi_switch_state(self):
+        """更新不生成 .pyi 文件开关的状态（仅 module/package 模式可用）"""
+        try:
+            no_pyi_switch = self.query_one("#no-pyi-switch", Switch)
+            
+            # 检查配置文件中是否明确设置了 mode
+            mode = self.config.get("mode", "").strip().lower()
+            
+            # 只有在 module 或 package 模式下才启用该开关
+            if mode in ("module", "package"):
+                no_pyi_switch.disabled = False
+            else:
+                # 其他所有模式（standalone, onefile, app, accelerated 等）都禁用
+                no_pyi_switch.disabled = True
+                # 禁用时同时关闭开关（设为 False）
+                no_pyi_switch.value = False
+        except Exception:
+            pass
 
     def _create_options_fields(self) -> None:
         """根据构建工具创建选项字段"""
@@ -173,14 +200,17 @@ class PackageOptionsScreen(Screen):
         if build_tool == "nuitka":
             # 基本选项 - 按钮行
             buttons_row = self._create_button_row(
-                "C 编译器:", "compiler-button",
-                "启用插件:", "plugins-button"
+                "C 编译器:", "compiler-button", "启用插件:", "plugins-button"
             )
 
             # 基本选项 - 开关行1
             switches_row1 = self._create_switch_row(
-                self._create_switch_widget("standalone-switch", "独立打包 (Standalone)", True, "standalone"),
-                self._create_switch_widget("onefile-switch", "单文件模式 (One File)", True, "onefile")
+                self._create_switch_widget(
+                    "standalone-switch", "独立打包 (Standalone)", True, "standalone"
+                ),
+                self._create_switch_widget(
+                    "onefile-switch", "单文件模式 (One File)", True, "onefile"
+                ),
             )
 
             # 基本选项 - 开关行2
@@ -200,13 +230,24 @@ class PackageOptionsScreen(Screen):
                 ),
                 classes="field-group",
             )
+            
+            # 基本选项 - 开关行3：跟随导入 + 不生成 .pyi 文件
+            follow_imports_switch = self._create_switch_widget(
+                "follow-imports-switch", "跟随导入 (自动包含模块)", True, "follow_imports"
+            )
+            no_pyi_switch = self._create_switch_widget(
+                "no-pyi-switch", "不生成 .pyi 文件 (仅module模式)", False, "no_pyi_file"
+            )
+            
             switches_row2 = self._create_switch_row(switch3, switch4)
+            switches_row3_basic = self._create_switch_row(follow_imports_switch, no_pyi_switch)
 
-            # 基本选项标签页内容（垂直布局：1行按钮 + 2行开关）
+            # 基本选项标签页内容（垂直布局：1行按钮 + 3行开关）
             basic_content = Vertical(
                 buttons_row,
                 switches_row1,
                 switches_row2,
+                switches_row3_basic,
                 classes="basic-options-content",
             )
 
@@ -221,24 +262,29 @@ class PackageOptionsScreen(Screen):
                 [
                     ("关闭 LTO（链接时优化）", "no"),
                     ("启用 LTO（链接时优化）", "yes"),
-                    ("自动 LTO（链接时优化）", "auto")
+                    ("自动 LTO（链接时优化）", "auto"),
                 ],
                 value=lto_value,
                 id="lto-select",
                 classes="field-select field-group",
                 allow_blank=False,
             )
-            
+
             # 静默输出开关
             quiet_switch = self._create_switch_widget(
                 "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
             )
-            
+
             switches_row3 = self._create_switch_row(lto_select, quiet_switch)
 
             # 高级选项 - 第2行
             switches_row4 = self._create_switch_row(
-                self._create_switch_widget("remove-output-switch", "移除构建文件 (节省空间)", True, "remove_output"),
+                self._create_switch_widget(
+                    "remove-output-switch",
+                    "移除构建文件 (节省空间)",
+                    True,
+                    "remove_output",
+                ),
                 Horizontal(
                     Label("编译线程:", classes="field-label-inline"),
                     Input(
@@ -250,20 +296,13 @@ class PackageOptionsScreen(Screen):
                     Button("-", id="jobs-decrease-btn", variant="default", flat=True),
                     Button("+", id="jobs-increase-btn", variant="default", flat=True),
                     classes="field-switch-container field-group",
-                )
-            )
-            
-            # 高级选项 - 第3行
-            switches_row5 = self._create_switch_row(
-                self._create_switch_widget("no-pyi-switch", "不生成 .pyi 文件", False, "no_pyi_file"),
-                Vertical(classes="field-group")
+                ),
             )
 
-            # 高级选项标签页内容（垂直布局：3行）
+            # 高级选项标签页内容（垂直布局：2行）
             advanced_content = Vertical(
                 switches_row3,
                 switches_row4,
-                switches_row5,
                 classes="basic-options-content",
             )
 
@@ -521,6 +560,9 @@ class PackageOptionsScreen(Screen):
             existing_config["no_pyi_file"] = self.query_one(
                 "#no-pyi-switch", Switch
             ).value
+            existing_config["follow_imports"] = self.query_one(
+                "#follow-imports-switch", Switch
+            ).value
             # 并行编译任务数（0或负数表示自动分配）
             jobs_value = self.query_one("#jobs-input", Input).value
             try:
@@ -656,6 +698,18 @@ class PackageOptionsScreen(Screen):
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         """处理开关变化事件"""
+        # Nuitka: 处理 standalone 和 onefile 开关变化
+        if event.switch.id in ("standalone-switch", "onefile-switch"):
+            if self.config.get("build_tool") == "nuitka":
+                # 更新 config 中的值
+                if event.switch.id == "standalone-switch":
+                    self.config["standalone"] = event.value
+                elif event.switch.id == "onefile-switch":
+                    self.config["onefile"] = event.value
+                # 更新 no-pyi-switch 状态
+                self._update_no_pyi_switch_state()
+        
+        # PyInstaller: 处理 onefile 开关变化
         if event.switch.id == "onefile-switch":
             try:
                 # 更新内部目录名称状态
