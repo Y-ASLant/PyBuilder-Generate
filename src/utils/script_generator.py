@@ -73,11 +73,23 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("        sys.executable,")
     lines.append("        '-m', 'nuitka',")
 
-    # 基本选项
-    if config.get("standalone", True):
-        lines.append("        '--standalone',")
-    if config.get("onefile", True):
-        lines.append("        '--onefile',")
+    # 编译模式（使用 Nuitka 官方推荐的 --mode 参数）
+    mode = config.get("mode", "").strip().lower()
+
+    if not mode:
+        # 向后兼容：从旧配置自动推导 mode
+        standalone = config.get("standalone", True)
+        onefile = config.get("onefile", True)
+
+        if standalone and onefile:
+            mode = "onefile"
+        elif standalone:
+            mode = "standalone"
+        else:
+            mode = "accelerated"
+
+    # 添加 mode 参数
+    lines.append(f"        '--mode={mode}',")
 
     # 输出选项
     lines.append("        f'--output-dir={OUTPUT_DIR}',")
@@ -86,9 +98,14 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     if not config.get("show_console", False):
         lines.append("        '--disable-console',")
 
-    # 性能选项
-    if config.get("lto", False):
-        lines.append("        '--lto=yes',")
+    # LTO 链接时优化
+    lto = config.get("lto", "no")
+    # 兼容旧的布尔值
+    if isinstance(lto, bool):
+        lto = "yes" if lto else "no"
+    # 只有设置了 lto 且不是 "no" 时才添加参数
+    if lto and lto.lower() != "no":
+        lines.append(f"        '--lto={lto.lower()}',")
 
     # 编译线程数（0或负数表示自动分配，不添加参数）
     jobs = config.get("jobs", 0)

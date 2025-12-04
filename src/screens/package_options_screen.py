@@ -7,7 +7,16 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Switch, Label, Input, TabbedContent, TabPane
+from textual.widgets import (
+    Static,
+    Button,
+    Switch,
+    Label,
+    Input,
+    TabbedContent,
+    TabPane,
+    Select,
+)
 from textual.binding import Binding
 
 from src.utils import (
@@ -135,6 +144,26 @@ class PackageOptionsScreen(Screen):
             classes="field-group",
         )
 
+    def _create_button_row(self, label1: str, id1: str, label2: str, id2: str):
+        """创建按钮行"""
+        return Horizontal(
+            Vertical(
+                Label(label1, classes="field-label"),
+                Button(id1.replace("-button", "..."), id=id1, variant="primary", flat=True),
+                classes="field-group",
+            ),
+            Vertical(
+                Label(label2, classes="field-label"),
+                Button(id2.replace("-button", "..."), id=id2, variant="primary", flat=True),
+                classes="field-group",
+            ),
+            classes="inputs-row",
+        )
+
+    def _create_switch_row(self, *switches):
+        """创建开关行"""
+        return Horizontal(*switches, classes="switches-row")
+
     def _create_options_fields(self) -> None:
         """根据构建工具创建选项字段"""
         build_tool = self.config.get("build_tool", "nuitka")
@@ -142,39 +171,19 @@ class PackageOptionsScreen(Screen):
 
         # Nuitka特有选项 - 使用标签页分组
         if build_tool == "nuitka":
-            # 基本选项 - 第1行：选择器按钮（2个）
-            button1 = Vertical(
-                Label("C 编译器:", classes="field-label"),
-                Button(
-                    "选择编译器...",
-                    id="compiler-button",
-                    variant="primary",
-                    flat=True,
-                ),
-                classes="field-group",
+            # 基本选项 - 按钮行
+            buttons_row = self._create_button_row(
+                "C 编译器:", "compiler-button",
+                "启用插件:", "plugins-button"
             )
-            button2 = Vertical(
-                Label("启用插件:", classes="field-label"),
-                Button(
-                    "选择插件...",
-                    id="plugins-button",
-                    variant="primary",
-                    flat=True,
-                ),
-                classes="field-group",
-            )
-            buttons_row = Horizontal(button1, button2, classes="inputs-row")
 
-            # 基本选项 - 第2行：开关（2个）
-            switch1 = self._create_switch_widget(
-                "standalone-switch", "独立打包 (Standalone)", True, "standalone"
+            # 基本选项 - 开关行1
+            switches_row1 = self._create_switch_row(
+                self._create_switch_widget("standalone-switch", "独立打包 (Standalone)", True, "standalone"),
+                self._create_switch_widget("onefile-switch", "单文件模式 (One File)", True, "onefile")
             )
-            switch2 = self._create_switch_widget(
-                "onefile-switch", "单文件模式 (One File)", True, "onefile"
-            )
-            switches_row1 = Horizontal(switch1, switch2, classes="switches-row")
 
-            # 基本选项 - 第3行：开关（2个）
+            # 基本选项 - 开关行2
             switch3 = self._create_switch_widget(
                 "console-switch", "显示终端窗口 (Windows)", False, "show_console"
             )
@@ -191,7 +200,7 @@ class PackageOptionsScreen(Screen):
                 ),
                 classes="field-group",
             )
-            switches_row2 = Horizontal(switch3, switch4, classes="switches-row")
+            switches_row2 = self._create_switch_row(switch3, switch4)
 
             # 基本选项标签页内容（垂直布局：1行按钮 + 2行开关）
             basic_content = Vertical(
@@ -201,52 +210,60 @@ class PackageOptionsScreen(Screen):
                 classes="basic-options-content",
             )
 
-            # 高级选项 - 第1行：开关（2个）
-            switch5 = self._create_switch_widget(
-                "lto-switch", "链接时优化 (LTO)", False, "lto"
-            )
-            switch6 = self._create_switch_widget(
-                "remove-output-switch",
-                "移除构建文件 (节省空间)",
-                True,
-                "remove_output",
-            )
-            switches_row3 = Horizontal(switch5, switch6, classes="switches-row")
+            # 高级选项 - 第1行：LTO 下拉选择 + 静默输出开关
+            lto_value = self.config.get("lto", "no")
+            # 兼容旧的布尔值
+            if isinstance(lto_value, bool):
+                lto_value = "yes" if lto_value else "no"
 
-            # 高级选项 - 第2行：开关（2个）
-            switch7 = self._create_switch_widget(
+            # LTO 下拉选择
+            lto_select = Select(
+                [
+                    ("关闭 LTO（链接时优化）", "no"),
+                    ("启用 LTO（链接时优化）", "yes"),
+                    ("自动 LTO（链接时优化）", "auto")
+                ],
+                value=lto_value,
+                id="lto-select",
+                classes="field-select field-group",
+                allow_blank=False,
+            )
+            
+            # 静默输出开关
+            quiet_switch = self._create_switch_widget(
                 "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
             )
-            switch8 = self._create_switch_widget(
-                "no-pyi-switch", "不生成 .pyi 文件", False, "no_pyi_file"
-            )
-            switches_row4 = Horizontal(switch7, switch8, classes="switches-row")
+            
+            switches_row3 = self._create_switch_row(lto_select, quiet_switch)
 
-            # 高级选项 - 第3行：编译线程输入框
-            jobs_input = Vertical(
-                Label("编译线程数 (0或负数=自动):", classes="field-label"),
+            # 高级选项 - 第2行
+            switches_row4 = self._create_switch_row(
+                self._create_switch_widget("remove-output-switch", "移除构建文件 (节省空间)", True, "remove_output"),
                 Horizontal(
+                    Label("编译线程:", classes="field-label-inline"),
                     Input(
-                        placeholder="0=自动, >0=指定数量",
+                        placeholder="0",
                         value=str(self.config.get("jobs", 0)),
                         id="jobs-input",
                         classes="field-input",
                     ),
                     Button("-", id="jobs-decrease-btn", variant="default", flat=True),
                     Button("+", id="jobs-increase-btn", variant="default", flat=True),
-                    classes="field-switch-container",
-                ),
-                classes="field-group",
+                    classes="field-switch-container field-group",
+                )
             )
-            jobs_row = Horizontal(
-                jobs_input, Vertical(classes="field-group"), classes="inputs-row"
+            
+            # 高级选项 - 第3行
+            switches_row5 = self._create_switch_row(
+                self._create_switch_widget("no-pyi-switch", "不生成 .pyi 文件", False, "no_pyi_file"),
+                Vertical(classes="field-group")
             )
 
-            # 高级选项标签页内容（垂直布局：2行开关 + 1行输入）
+            # 高级选项标签页内容（垂直布局：3行）
             advanced_content = Vertical(
                 switches_row3,
                 switches_row4,
-                jobs_row,
+                switches_row5,
                 classes="basic-options-content",
             )
 
@@ -498,7 +515,9 @@ class PackageOptionsScreen(Screen):
             existing_config["remove_output"] = self.query_one(
                 "#remove-output-switch", Switch
             ).value
-            existing_config["lto"] = self.query_one("#lto-switch", Switch).value
+            # LTO 从下拉选择获取
+            lto_select = self.query_one("#lto-select", Select)
+            existing_config["lto"] = lto_select.value if lto_select.value else "no"
             existing_config["no_pyi_file"] = self.query_one(
                 "#no-pyi-switch", Switch
             ).value
