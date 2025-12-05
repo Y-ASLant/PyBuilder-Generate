@@ -19,7 +19,7 @@ standalone: true
 remove_output: true
 show_progress: false
 lto: auto  # yes/no/auto
-jobs: 12  # 0或负数=自动分配
+jobs: 16  # 0或负数=自动分配
 python_flag: -O
 compiler: msvc
 no_pyi_file: false

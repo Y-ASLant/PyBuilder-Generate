@@ -298,11 +298,23 @@ class PackageOptionsScreen(Screen):
                     classes="field-switch-container field-group",
                 ),
             )
+            
+            # 高级选项 - 第3行：自动下载依赖工具
+            switches_row5 = self._create_switch_row(
+                self._create_switch_widget(
+                    "assume-yes-switch",
+                    "自动下载依赖 (CI环境必需)",
+                    False,
+                    "assume_yes_for_downloads",
+                ),
+                Vertical(classes="field-group"),  # 占位元素
+            )
 
-            # 高级选项标签页内容（垂直布局：2行）
+            # 高级选项标签页内容（垂直布局：3行）
             advanced_content = Vertical(
                 switches_row3,
                 switches_row4,
+                switches_row5,
                 classes="basic-options-content",
             )
 
@@ -578,6 +590,10 @@ class PackageOptionsScreen(Screen):
             )
             # C编译器
             existing_config["compiler"] = self.selected_compiler
+            # 自动下载依赖工具
+            existing_config["assume_yes_for_downloads"] = self.query_one(
+                "#assume-yes-switch", Switch
+            ).value
 
         # PyInstaller特有选项
         if build_tool == "pyinstaller":

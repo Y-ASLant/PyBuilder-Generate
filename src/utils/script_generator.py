@@ -153,6 +153,10 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     if config.get("follow_imports", True):
         lines.append("        '--follow-imports',")
 
+    # 自动下载依赖工具（CI环境必需）
+    if config.get("assume_yes_for_downloads", False):
+        lines.append("        '--assume-yes-for-downloads',")
+
     # 插件
     plugins = config.get("plugins", [])
     if isinstance(plugins, str):
