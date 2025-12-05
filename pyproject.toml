@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "loguru>=0.7.3",
+    "nuitka>=2.8.9",
     "pyfiglet>=1.0.4",
     "pyinstaller>=6.17.0",
     "textual>=6.6.0",

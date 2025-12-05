@@ -45,11 +45,18 @@ def build():
         sys.executable,
         "-m",
         "nuitka",
-        "--standalone",
+        "--mode=standalone",
         f"--output-dir={OUTPUT_DIR}",
+        f"--output-filename={PROJECT_NAME}",
+        f"--output-folder-name={PROJECT_NAME}.dist",
+        "--lto=auto",
         "--jobs=16",
+        "--python-flag=-O",
         "--quiet",
         "--remove-output",
+        "--follow-imports",
+        "--assume-yes-for-downloads",
+        "--include-data-dir=src=src",
         f"--windows-icon-from-ico={ICON_FILE}",
         f"--windows-company-name={COMPANY_NAME}",
         f"--windows-product-version={VERSION}",
@@ -88,9 +95,7 @@ def build():
         return 1
     except Exception as e:
         print(separator)
-        print(
-            f"{Color.RED}{Color.BOLD}Error: {Color.RESET}{Color.RED}{e}{Color.RESET}"
-        )
+        print(f"{Color.RED}{Color.BOLD}Error: {Color.RESET}{Color.RED}{e}{Color.RESET}")
         return 1
 
 

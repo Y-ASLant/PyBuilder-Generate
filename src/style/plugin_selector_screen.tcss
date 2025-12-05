@@ -33,6 +33,7 @@ PluginSelectorScreen {
     height: 20;
     border: solid $accent;
     margin-bottom: 1;
+    background: transparent;
 }
 
 #button-container {

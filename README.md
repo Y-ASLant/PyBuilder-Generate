@@ -72,8 +72,14 @@ uv sync
 ### 运行
 
 ```bash
-# 使用 uv
+# 方式1：使用 uv（推荐）
 uv run main.py
+
+# 方式2：直接运行
+python main.py
+
+# 方式3：模块方式运行
+python -m src
 ```
 
 ### 构建可执行文件

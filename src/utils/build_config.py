@@ -17,6 +17,11 @@ DEFAULT_BUILD_CONFIG = {
     "icon_file": "",
     "build_tool": "pyinstaller",  # pyinstaller | nuitka
     "output_dir": "dist",
+    # Nuitka 编译模式（推荐使用）
+    # 可选值: accelerated, standalone, onefile, app, app-dist, module, package
+    # 空字符串表示自动根据 standalone/onefile 组合决定
+    "mode": "",
+    # 向后兼容配置（仅在 mode 为空时生效）
     "standalone": True,
     "onefile": True,
     "show_console": False,
@@ -24,10 +29,12 @@ DEFAULT_BUILD_CONFIG = {
     # Nuitka特有
     "remove_output": True,
     "show_progress": True,
-    "lto": False,
-    "jobs": 4,
+    "lto": "no",  # yes/no/auto - 链接时优化
+    "jobs": 0,  # 0或负数表示自动分配，正数表示指定线程数
     "python_flag": "",  # 空字符串表示不使用，可选值: "-O", "no_asserts", "no_docstrings"
     "compiler": "msvc",
+    "no_pyi_file": False,
+    "follow_imports": True,  # 跟随所有导入的模块
     # PyInstaller特有
     "clean": True,
     "noconfirm": False,
@@ -181,12 +188,22 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             lines.append(
                 f"show_progress: {str(config.get('show_progress', True)).lower()}\n"
             )
-            lines.append(f"lto: {str(config.get('lto', False)).lower()}\n")
-            lines.append(f"jobs: {config.get('jobs', 4)}\n")
+            lto = config.get("lto", "no")
+            # 兼容旧的布尔值
+            if isinstance(lto, bool):
+                lto = "yes" if lto else "no"
+            lines.append(f"lto: {lto}  # yes/no/auto\n")
+            lines.append(f"jobs: {config.get('jobs', 0)}  # 0或负数=自动分配\n")
             python_flag = config.get("python_flag", "")
             if python_flag:
                 lines.append(f"python_flag: {python_flag}\n")
             lines.append(f"compiler: {config.get('compiler', 'msvc')}\n")
+            lines.append(
+                f"no_pyi_file: {str(config.get('no_pyi_file', False)).lower()}\n"
+            )
+            lines.append(
+                f"follow_imports: {str(config.get('follow_imports', True)).lower()}\n"
+            )
 
         # PyInstaller特有选项
         if config.get("build_tool") == "pyinstaller":

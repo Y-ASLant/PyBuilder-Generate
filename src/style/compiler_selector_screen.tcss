@@ -33,6 +33,7 @@ CompilerSelectorScreen {
     height: 16;
     border: solid $accent;
     margin-bottom: 1;
+    background: transparent;
 }
 
 #button-container {

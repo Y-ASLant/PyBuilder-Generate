@@ -32,6 +32,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PyBuilder-PyInstaller-Windows
-          path: build/PyBuilder/
+          path: build/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 3

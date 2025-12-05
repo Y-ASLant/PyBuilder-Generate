@@ -7,7 +7,16 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Switch, Label, Input, TabbedContent, TabPane
+from textual.widgets import (
+    Static,
+    Button,
+    Switch,
+    Label,
+    Input,
+    TabbedContent,
+    TabPane,
+    Select,
+)
 from textual.binding import Binding
 
 from src.utils import (
@@ -92,6 +101,10 @@ class PackageOptionsScreen(Screen):
         # 根据构庻工具动态生成选项（开关值已在创庻时设置）
         self._create_options_fields()
 
+        # 如果是 Nuitka，根据模式设置 no-pyi-switch 状态
+        if self.config.get("build_tool") == "nuitka":
+            self._update_no_pyi_switch_state()
+
         # 如果是 PyInstaller，根据单文件模式设置输入框状态
         if self.config.get("build_tool") == "pyinstaller":
             is_onefile = self.config.get("onefile", True)
@@ -135,121 +148,252 @@ class PackageOptionsScreen(Screen):
             classes="field-group",
         )
 
+    def _create_button_row(self, label1: str, id1: str, label2: str, id2: str):
+        """创建按钮行"""
+        return Horizontal(
+            Vertical(
+                Label(label1, classes="field-label"),
+                Button(
+                    id1.replace("-button", "..."), id=id1, variant="primary", flat=True
+                ),
+                classes="field-group",
+            ),
+            Vertical(
+                Label(label2, classes="field-label"),
+                Button(
+                    id2.replace("-button", "..."), id=id2, variant="primary", flat=True
+                ),
+                classes="field-group",
+            ),
+            classes="inputs-row",
+        )
+
+    def _create_switch_row(self, *switches):
+        """创建开关行"""
+        return Horizontal(*switches, classes="switches-row")
+
+    def _update_no_pyi_switch_state(self):
+        """更新不生成 .pyi 文件开关的状态（仅 module/package 模式可用）"""
+        try:
+            no_pyi_switch = self.query_one("#no-pyi-switch", Switch)
+
+            # 检查配置文件中是否明确设置了 mode
+            mode = self.config.get("mode", "").strip().lower()
+
+            # 只有在 module 或 package 模式下才启用该开关
+            if mode in ("module", "package"):
+                no_pyi_switch.disabled = False
+            else:
+                # 其他所有模式（standalone, onefile, app, accelerated 等）都禁用
+                no_pyi_switch.disabled = True
+                # 禁用时同时关闭开关（设为 False）
+                no_pyi_switch.value = False
+        except Exception:
+            pass
+
     def _create_options_fields(self) -> None:
         """根据构建工具创建选项字段"""
         build_tool = self.config.get("build_tool", "nuitka")
         options_container = self.query_one("#options-fields", Container)
 
-        # 创建左列和右列的组件列表
-        left_widgets = []
-        right_widgets = []
-
-        # Nuitka特有选项
+        # Nuitka特有选项 - 使用标签页分组
         if build_tool == "nuitka":
-            # 左列第1行：C编译器选择
-            left_widgets.append(
-                Vertical(
-                    Label("C 编译器:", classes="field-label"),
-                    Button(
-                        "选择编译器...",
-                        id="compiler-button",
-                        variant="primary",
-                        flat=True,
-                    ),
-                    classes="field-group",
-                )
+            # 基本选项 - 按钮行
+            buttons_row = self._create_button_row(
+                "C 编译器:", "compiler-button", "启用插件:", "plugins-button"
             )
-            # 右列第1行：插件支持
-            right_widgets.append(
-                Vertical(
-                    Label("启用插件:", classes="field-label"),
-                    Button(
-                        "选择插件...",
-                        id="plugins-button",
-                        variant="primary",
-                        flat=True,
-                    ),
-                    classes="field-group",
-                )
-            )
-            # 左列第2行：独立打包
-            left_widgets.append(
+
+            # 基本选项 - 开关行1
+            switches_row1 = self._create_switch_row(
                 self._create_switch_widget(
                     "standalone-switch", "独立打包 (Standalone)", True, "standalone"
-                )
-            )
-            # 右列第2行：Python优化（从字符串转换为布尔值）
-            python_flag_value = bool(self.config.get("python_flag", ""))
-            right_widgets.append(
-                Vertical(
-                    Horizontal(
-                        Switch(
-                            value=python_flag_value,
-                            id="python-flag-switch",
-                            classes="field-switch",
-                        ),
-                        Label(
-                            "Python优化 (移除断言和文档)", classes="field-switch-label"
-                        ),
-                        classes="field-switch-container",
-                    ),
-                    classes="field-group",
-                )
-            )
-            # 左列第3行：LTO优化
-            left_widgets.append(
-                self._create_switch_widget(
-                    "lto-switch", "链接时优化 (LTO)", False, "lto"
-                )
-            )
-            # 左列第4行：单文件模式
-            left_widgets.append(
+                ),
                 self._create_switch_widget(
                     "onefile-switch", "单文件模式 (One File)", True, "onefile"
-                )
+                ),
             )
-            # 左列第5行：静默输出（合并静默模式和显示进度条）
-            left_widgets.append(
-                self._create_switch_widget(
-                    "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
-                )
+
+            # 基本选项 - 开关行2
+            switch3 = self._create_switch_widget(
+                "console-switch", "显示终端窗口 (Windows)", False, "show_console"
             )
-            # 右列第3行：显示控制台窗口
-            right_widgets.append(
-                self._create_switch_widget(
-                    "console-switch", "显示终端窗口 (Windows)", False, "show_console"
-                )
+            python_flag_value = bool(self.config.get("python_flag", ""))
+            switch4 = Vertical(
+                Horizontal(
+                    Switch(
+                        value=python_flag_value,
+                        id="python-flag-switch",
+                        classes="field-switch",
+                    ),
+                    Label("Python优化 (移除断言和文档)", classes="field-switch-label"),
+                    classes="field-switch-container",
+                ),
+                classes="field-group",
             )
-            # 右列第4行：移除构建文件
-            right_widgets.append(
+
+            # 基本选项 - 开关行3：跟随导入 + 不生成 .pyi 文件
+            follow_imports_switch = self._create_switch_widget(
+                "follow-imports-switch",
+                "跟随导入 (自动包含模块)",
+                True,
+                "follow_imports",
+            )
+            no_pyi_switch = self._create_switch_widget(
+                "no-pyi-switch", "不生成 .pyi 文件 (仅module模式)", False, "no_pyi_file"
+            )
+
+            switches_row2 = self._create_switch_row(switch3, switch4)
+            switches_row3_basic = self._create_switch_row(
+                follow_imports_switch, no_pyi_switch
+            )
+
+            # 基本选项标签页内容（垂直布局：1行按钮 + 3行开关）
+            basic_content = Vertical(
+                buttons_row,
+                switches_row1,
+                switches_row2,
+                switches_row3_basic,
+                classes="basic-options-content",
+            )
+
+            # 高级选项 - 第1行：LTO 下拉选择 + 静默输出开关
+            lto_value = self.config.get("lto", "no")
+            # 兼容旧的布尔值
+            if isinstance(lto_value, bool):
+                lto_value = "yes" if lto_value else "no"
+
+            # LTO 下拉选择
+            lto_select = Select(
+                [
+                    ("关闭 LTO（链接时优化）", "no"),
+                    ("启用 LTO（链接时优化）", "yes"),
+                    ("自动 LTO（链接时优化）", "auto"),
+                ],
+                value=lto_value,
+                id="lto-select",
+                classes="field-select field-group",
+                allow_blank=False,
+            )
+
+            # 静默输出开关
+            quiet_switch = self._create_switch_widget(
+                "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
+            )
+
+            switches_row3 = self._create_switch_row(lto_select, quiet_switch)
+
+            # 高级选项 - 第2行
+            switches_row4 = self._create_switch_row(
                 self._create_switch_widget(
                     "remove-output-switch",
                     "移除构建文件 (节省空间)",
                     True,
                     "remove_output",
-                )
-            )
-            # 右列第5行：编译线程
-            right_widgets.append(
-                Vertical(
-                    Horizontal(
-                        Input(
-                            placeholder="编译线程 (默认: 4)",
-                            value=str(self.config.get("jobs", 4)),
-                            id="jobs-input",
-                            classes="field-input",
-                        ),
-                        Button(
-                            "-", id="jobs-decrease-btn", variant="default", flat=True
-                        ),
-                        Button(
-                            "+", id="jobs-increase-btn", variant="default", flat=True
-                        ),
-                        classes="field-switch-container",
+                ),
+                Horizontal(
+                    Label("编译线程:", classes="field-label-inline"),
+                    Input(
+                        placeholder="0",
+                        value=str(self.config.get("jobs", 0)),
+                        id="jobs-input",
+                        classes="field-input",
                     ),
-                    classes="field-group",
-                )
+                    Button("-", id="jobs-decrease-btn", variant="default", flat=True),
+                    Button("+", id="jobs-increase-btn", variant="default", flat=True),
+                    classes="field-switch-container field-group",
+                ),
             )
+
+            # 高级选项 - 第3行：自动下载依赖工具
+            switches_row5 = self._create_switch_row(
+                self._create_switch_widget(
+                    "assume-yes-switch",
+                    "自动下载依赖 (CI环境必需)",
+                    False,
+                    "assume_yes_for_downloads",
+                ),
+                Vertical(classes="field-group"),  # 占位元素
+            )
+
+            # 高级选项标签页内容（垂直布局：3行）
+            advanced_content = Vertical(
+                switches_row3,
+                switches_row4,
+                switches_row5,
+                classes="basic-options-content",
+            )
+
+            # 数据导入标签页 - 第1行输入框（2个）
+            nuitka_import_input1 = self._create_input_widget(
+                "nuitka-include-package-input",
+                "包含包 (支持空格、中英文逗号分隔):",
+                "include_packages",
+                "例如: numpy pandas PIL",
+            )
+            nuitka_import_input2 = self._create_input_widget(
+                "nuitka-include-module-input",
+                "包含模块 (支持空格、中英文逗号分隔):",
+                "include_modules",
+                "例如: requests.adapters os.path",
+            )
+            nuitka_import_row1 = Horizontal(
+                nuitka_import_input1, nuitka_import_input2, classes="inputs-row"
+            )
+
+            # 数据导入标签页 - 第2行输入框（2个）
+            nuitka_import_input3 = self._create_input_widget(
+                "nuitka-nofollow-import-input",
+                "排除导入 (支持空格、中英文逗号分隔):",
+                "nofollow_imports",
+                "例如: tkinter test unittest",
+            )
+            nuitka_import_input4 = self._create_input_widget(
+                "nuitka-include-data-files-input",
+                "数据文件 (支持空格、中英文逗号分隔):",
+                "include_data_files",
+                "格式: src;dest 多个用空格",
+            )
+            nuitka_import_row2 = Horizontal(
+                nuitka_import_input3, nuitka_import_input4, classes="inputs-row"
+            )
+
+            # 数据导入标签页 - 第3行输入框（2个）
+            nuitka_import_input5 = self._create_input_widget(
+                "nuitka-include-data-dir-input",
+                "数据目录 (支持空格、中英文逗号分隔):",
+                "include_data_dirs",
+                "格式: src;dest 多个用空格",
+            )
+            nuitka_import_input6 = Vertical(
+                Label("", classes="field-label"),  # 占位
+                classes="field-group",
+            )
+            nuitka_import_row3 = Horizontal(
+                nuitka_import_input5, nuitka_import_input6, classes="inputs-row"
+            )
+
+            # 数据导入标签页内容（垂直布局：3行输入框）
+            nuitka_import_content = Vertical(
+                nuitka_import_row1,
+                nuitka_import_row2,
+                nuitka_import_row3,
+                classes="basic-options-content",
+            )
+
+            # 创建标签页容器并使用 compose 方法添加标签页
+            tabs = TabbedContent(id="nuitka-tabs")
+            tabs.compose_add_child(TabPane("基本选项", basic_content, id="basic-tab"))
+            tabs.compose_add_child(
+                TabPane("高级选项", advanced_content, id="advanced-tab")
+            )
+            tabs.compose_add_child(
+                TabPane("数据导入", nuitka_import_content, id="nuitka-import-tab")
+            )
+
+            # 挂载标签页容器
+            options_container.mount(tabs)
+
+            return  # Nuitka 使用标签页，不需要下面的两列布局
 
         # PyInstaller特有选项 - 使用标签页分组
         if build_tool == "pyinstaller":
@@ -462,15 +606,6 @@ class PackageOptionsScreen(Screen):
             # 挂载标签页容器
             options_container.mount(tabs)
 
-            return  # PyInstaller 使用标签页，不需要下面的两列布局
-
-        # 创建两列容器并一次性挂载所有组件（Nuitka 使用）
-        left_column = Vertical(*left_widgets, classes="option-column")
-        right_column = Vertical(*right_widgets, classes="option-column")
-        two_columns = Horizontal(left_column, right_column, classes="options-columns")
-
-        options_container.mount(two_columns)
-
     def _save_config_from_ui(self) -> None:
         """从UI保存配置（只更新打包选项字段，保留编译配置）"""
         # 先加载现有配置，保留编译配置字段
@@ -496,13 +631,21 @@ class PackageOptionsScreen(Screen):
             existing_config["remove_output"] = self.query_one(
                 "#remove-output-switch", Switch
             ).value
-            existing_config["lto"] = self.query_one("#lto-switch", Switch).value
-            # 并行编译任务数
+            # LTO 从下拉选择获取
+            lto_select = self.query_one("#lto-select", Select)
+            existing_config["lto"] = lto_select.value if lto_select.value else "no"
+            existing_config["no_pyi_file"] = self.query_one(
+                "#no-pyi-switch", Switch
+            ).value
+            existing_config["follow_imports"] = self.query_one(
+                "#follow-imports-switch", Switch
+            ).value
+            # 并行编译任务数（0或负数表示自动分配）
             jobs_value = self.query_one("#jobs-input", Input).value
             try:
-                existing_config["jobs"] = int(jobs_value) if jobs_value else 4
+                existing_config["jobs"] = int(jobs_value) if jobs_value else 0
             except ValueError:
-                existing_config["jobs"] = 4
+                existing_config["jobs"] = 0
             # Python优化标志（开关转换为字符串）
             python_opt = self.query_one("#python-flag-switch", Switch).value
             existing_config["python_flag"] = "-O" if python_opt else ""
@@ -512,6 +655,27 @@ class PackageOptionsScreen(Screen):
             )
             # C编译器
             existing_config["compiler"] = self.selected_compiler
+            # 自动下载依赖工具
+            existing_config["assume_yes_for_downloads"] = self.query_one(
+                "#assume-yes-switch", Switch
+            ).value
+
+            # 数据导入选项
+            existing_config["include_packages"] = self.query_one(
+                "#nuitka-include-package-input", Input
+            ).value.strip()
+            existing_config["include_modules"] = self.query_one(
+                "#nuitka-include-module-input", Input
+            ).value.strip()
+            existing_config["nofollow_imports"] = self.query_one(
+                "#nuitka-nofollow-import-input", Input
+            ).value.strip()
+            existing_config["include_data_files"] = self.query_one(
+                "#nuitka-include-data-files-input", Input
+            ).value.strip()
+            existing_config["include_data_dirs"] = self.query_one(
+                "#nuitka-include-data-dir-input", Input
+            ).value.strip()
 
         # PyInstaller特有选项
         if build_tool == "pyinstaller":
@@ -632,6 +796,18 @@ class PackageOptionsScreen(Screen):
 
     def on_switch_changed(self, event: Switch.Changed) -> None:
         """处理开关变化事件"""
+        # Nuitka: 处理 standalone 和 onefile 开关变化
+        if event.switch.id in ("standalone-switch", "onefile-switch"):
+            if self.config.get("build_tool") == "nuitka":
+                # 更新 config 中的值
+                if event.switch.id == "standalone-switch":
+                    self.config["standalone"] = event.value
+                elif event.switch.id == "onefile-switch":
+                    self.config["onefile"] = event.value
+                # 更新 no-pyi-switch 状态
+                self._update_no_pyi_switch_state()
+
+        # PyInstaller: 处理 onefile 开关变化
         if event.switch.id == "onefile-switch":
             try:
                 # 更新内部目录名称状态
@@ -729,15 +905,15 @@ class PackageOptionsScreen(Screen):
             self._adjust_jobs(1)
 
     def _adjust_jobs(self, delta: int) -> None:
-        """调整编译线程数"""
+        """调整编译线程数（0或负数表示自动分配）"""
         jobs_input = self.query_one("#jobs-input", Input)
         try:
-            current_value = int(jobs_input.value) if jobs_input.value else 4
+            current_value = int(jobs_input.value) if jobs_input.value else 0
         except ValueError:
-            current_value = 4
+            current_value = 0
 
-        # 计算新值，最小为1
-        new_value = max(1, current_value + delta)
+        # 计算新值，允许负数和0（表示自动分配）
+        new_value = current_value + delta
         jobs_input.value = str(new_value)
 
     def action_back(self) -> None:

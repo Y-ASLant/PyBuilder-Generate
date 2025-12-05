@@ -14,8 +14,9 @@ ToastRack {
 
 #options-container {
     width: 100;
-    height: auto;
+    height: 100%;
     padding: 1 2;
+    layout: vertical;
 }
 
 #screen-title {
@@ -38,7 +39,7 @@ ToastRack {
 
 #options-fields {
     width: 100%;
-    height: auto;
+    height: 1fr;
 }
 
 .options-columns {
@@ -63,16 +64,20 @@ ToastRack {
     width: 100%;
     height: auto;
     layout: horizontal;
-    align-vertical: middle;
+    align: left middle;
 }
 
 .field-switch {
     margin: 0 1 0 0;
 }
 
+.field-switch:disabled {
+    opacity: 0.5;
+}
+
 .field-switch-label {
     color: $text;
-    padding-top: 1;
+    content-align: center middle;
 }
 
 .field-label {
@@ -81,13 +86,30 @@ ToastRack {
     margin-bottom: 0;
 }
 
+.field-label-inline {
+    color: $text;
+    height: 3;
+    content-align: left middle;
+    margin-right: 1;
+    min-width: 10;
+}
+
 .field-input {
     width: 100%;
     height: 3;
 }
 
+.field-select {
+    height: 3;
+}
+
+/* LTO 下拉选择特殊样式 */
+#lto-select {
+    height: 3;
+}
+
 #jobs-input {
-    width: 30;
+    width: 15;
     height: 3;
 }
 
@@ -121,29 +143,24 @@ Button {
 /* 标签页样式 */
 #pyinstaller-tabs {
     width: 100%;
-    height: auto;
+    height: 1fr;
 }
 
 TabbedContent {
-    height: auto;
+    height: 100%;
 }
 
 TabPane {
     height: auto;
+    min-height: 100%;
     padding: 1;
 }
 
-Tabs {
-    background: $panel;
-}
-
 Tab {
-    background: $panel;
     color: $text-muted;
 }
 
 Tab.-active {
-    background: $primary;
     color: $text;
     text-style: bold;
 }
@@ -158,12 +175,15 @@ Tab.-active {
     width: 100%;
     height: auto;
     layout: horizontal;
+    align: left top;
     margin-bottom: 1;
 }
 
-.switches-row > .field-group {
+.switches-row > .field-group,
+.switches-row > Select {
     width: 50%;
     margin: 0 1 0 0;
+    align-vertical: top;
 }
 
 .inputs-row {

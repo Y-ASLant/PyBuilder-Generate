@@ -73,25 +73,49 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("        sys.executable,")
     lines.append("        '-m', 'nuitka',")
 
-    # 基本选项
-    if config.get("standalone", True):
-        lines.append("        '--standalone',")
-    if config.get("onefile", True):
-        lines.append("        '--onefile',")
+    # 编译模式（使用 Nuitka 官方推荐的 --mode 参数）
+    mode = config.get("mode", "").strip().lower()
+
+    if not mode:
+        # 向后兼容：从旧配置自动推导 mode
+        standalone = config.get("standalone", True)
+        onefile = config.get("onefile", True)
+
+        if standalone and onefile:
+            mode = "onefile"
+        elif standalone:
+            mode = "standalone"
+        else:
+            mode = "accelerated"
+
+    # 添加 mode 参数
+    lines.append(f"        '--mode={mode}',")
 
     # 输出选项
     lines.append("        f'--output-dir={OUTPUT_DIR}',")
+    lines.append("        f'--output-filename={PROJECT_NAME}',")
+
+    # 输出文件夹名称（仅非 onefile 模式）
+    if mode == "standalone" or mode == "app-dist":
+        lines.append("        f'--output-folder-name={PROJECT_NAME}.dist',")
 
     # 控制台选项
     if not config.get("show_console", False):
         lines.append("        '--disable-console',")
 
-    # 性能选项
-    if config.get("lto", False):
-        lines.append("        '--lto=yes',")
+    # LTO 链接时优化
+    lto = config.get("lto", "no")
+    # 兼容旧的布尔值
+    if isinstance(lto, bool):
+        lto = "yes" if lto else "no"
+    # 只有设置了 lto 且不是 "no" 时才添加参数
+    if lto and lto.lower() != "no":
+        lines.append(f"        '--lto={lto.lower()}',")
 
-    jobs = config.get("jobs", 4)
-    lines.append(f"        '--jobs={jobs}',")
+    # 编译线程数（0或负数表示自动分配，不添加参数）
+    jobs = config.get("jobs", 0)
+    if jobs > 0:
+        lines.append(f"        '--jobs={jobs}',")
 
     # Python 优化
     python_flag = config.get("python_flag", "")
@@ -120,6 +144,65 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     # 移除构建文件
     if config.get("remove_output", True):
         lines.append("        '--remove-output',")
+
+    # 不生成 .pyi 文件（仅 module 和 package 模式有效）
+    if config.get("no_pyi_file", False) and mode in ("module", "package"):
+        lines.append("        '--no-pyi-file',")
+
+    # 跟随导入（自动包含所有导入的模块）
+    if config.get("follow_imports", True):
+        lines.append("        '--follow-imports',")
+
+    # 自动下载依赖工具（CI环境必需）
+    if config.get("assume_yes_for_downloads", False):
+        lines.append("        '--assume-yes-for-downloads',")
+
+    # 包含包
+    include_packages = config.get("include_packages", "")
+    if include_packages:
+        packages = [
+            p.strip() for p in re.split(r"[,\s，]+", include_packages) if p.strip()
+        ]
+        for package in packages:
+            lines.append(f"        '--include-package={package}',")
+
+    # 包含模块
+    include_modules = config.get("include_modules", "")
+    if include_modules:
+        modules = [
+            m.strip() for m in re.split(r"[,\s，]+", include_modules) if m.strip()
+        ]
+        for module in modules:
+            lines.append(f"        '--include-module={module}',")
+
+    # 排除导入
+    nofollow_imports = config.get("nofollow_imports", "")
+    if nofollow_imports:
+        modules = [
+            m.strip() for m in re.split(r"[,\s，]+", nofollow_imports) if m.strip()
+        ]
+        for module in modules:
+            lines.append(f"        '--nofollow-import-to={module}',")
+
+    # 数据文件（支持 ; 分隔符，转换为 Nuitka 的 = 格式）
+    include_data_files = config.get("include_data_files", "")
+    if include_data_files:
+        entries = [e.strip() for e in include_data_files.split() if e.strip()]
+        for data_entry in entries:
+            if ";" in data_entry:
+                # 将 ; 替换为 = （Nuitka 使用 = 格式）
+                data_entry = data_entry.replace(";", "=")
+                lines.append(f"        '--include-data-files={data_entry}',")
+
+    # 数据目录（支持 ; 分隔符，转换为 Nuitka 的 = 格式）
+    include_data_dirs = config.get("include_data_dirs", "")
+    if include_data_dirs:
+        entries = [e.strip() for e in include_data_dirs.split() if e.strip()]
+        for data_entry in entries:
+            if ";" in data_entry:
+                # 将 ; 替换为 = （Nuitka 使用 = 格式）
+                data_entry = data_entry.replace(";", "=")
+                lines.append(f"        '--include-data-dir={data_entry}',")
 
     # 插件
     plugins = config.get("plugins", [])
