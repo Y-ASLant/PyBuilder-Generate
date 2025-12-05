@@ -100,7 +100,7 @@ class PackageOptionsScreen(Screen):
 
         # 根据构庻工具动态生成选项（开关值已在创庻时设置）
         self._create_options_fields()
-        
+
         # 如果是 Nuitka，根据模式设置 no-pyi-switch 状态
         if self.config.get("build_tool") == "nuitka":
             self._update_no_pyi_switch_state()
@@ -171,15 +171,15 @@ class PackageOptionsScreen(Screen):
     def _create_switch_row(self, *switches):
         """创建开关行"""
         return Horizontal(*switches, classes="switches-row")
-    
+
     def _update_no_pyi_switch_state(self):
         """更新不生成 .pyi 文件开关的状态（仅 module/package 模式可用）"""
         try:
             no_pyi_switch = self.query_one("#no-pyi-switch", Switch)
-            
+
             # 检查配置文件中是否明确设置了 mode
             mode = self.config.get("mode", "").strip().lower()
-            
+
             # 只有在 module 或 package 模式下才启用该开关
             if mode in ("module", "package"):
                 no_pyi_switch.disabled = False
@@ -230,17 +230,22 @@ class PackageOptionsScreen(Screen):
                 ),
                 classes="field-group",
             )
-            
+
             # 基本选项 - 开关行3：跟随导入 + 不生成 .pyi 文件
             follow_imports_switch = self._create_switch_widget(
-                "follow-imports-switch", "跟随导入 (自动包含模块)", True, "follow_imports"
+                "follow-imports-switch",
+                "跟随导入 (自动包含模块)",
+                True,
+                "follow_imports",
             )
             no_pyi_switch = self._create_switch_widget(
                 "no-pyi-switch", "不生成 .pyi 文件 (仅module模式)", False, "no_pyi_file"
             )
-            
+
             switches_row2 = self._create_switch_row(switch3, switch4)
-            switches_row3_basic = self._create_switch_row(follow_imports_switch, no_pyi_switch)
+            switches_row3_basic = self._create_switch_row(
+                follow_imports_switch, no_pyi_switch
+            )
 
             # 基本选项标签页内容（垂直布局：1行按钮 + 3行开关）
             basic_content = Vertical(
@@ -298,7 +303,7 @@ class PackageOptionsScreen(Screen):
                     classes="field-switch-container field-group",
                 ),
             )
-            
+
             # 高级选项 - 第3行：自动下载依赖工具
             switches_row5 = self._create_switch_row(
                 self._create_switch_widget(
@@ -331,7 +336,9 @@ class PackageOptionsScreen(Screen):
                 "include_modules",
                 "例如: requests.adapters os.path",
             )
-            nuitka_import_row1 = Horizontal(nuitka_import_input1, nuitka_import_input2, classes="inputs-row")
+            nuitka_import_row1 = Horizontal(
+                nuitka_import_input1, nuitka_import_input2, classes="inputs-row"
+            )
 
             # 数据导入标签页 - 第2行输入框（2个）
             nuitka_import_input3 = self._create_input_widget(
@@ -346,7 +353,9 @@ class PackageOptionsScreen(Screen):
                 "include_data_files",
                 "格式: src;dest 多个用空格",
             )
-            nuitka_import_row2 = Horizontal(nuitka_import_input3, nuitka_import_input4, classes="inputs-row")
+            nuitka_import_row2 = Horizontal(
+                nuitka_import_input3, nuitka_import_input4, classes="inputs-row"
+            )
 
             # 数据导入标签页 - 第3行输入框（2个）
             nuitka_import_input5 = self._create_input_widget(
@@ -359,7 +368,9 @@ class PackageOptionsScreen(Screen):
                 Label("", classes="field-label"),  # 占位
                 classes="field-group",
             )
-            nuitka_import_row3 = Horizontal(nuitka_import_input5, nuitka_import_input6, classes="inputs-row")
+            nuitka_import_row3 = Horizontal(
+                nuitka_import_input5, nuitka_import_input6, classes="inputs-row"
+            )
 
             # 数据导入标签页内容（垂直布局：3行输入框）
             nuitka_import_content = Vertical(
@@ -648,7 +659,7 @@ class PackageOptionsScreen(Screen):
             existing_config["assume_yes_for_downloads"] = self.query_one(
                 "#assume-yes-switch", Switch
             ).value
-            
+
             # 数据导入选项
             existing_config["include_packages"] = self.query_one(
                 "#nuitka-include-package-input", Input
@@ -795,7 +806,7 @@ class PackageOptionsScreen(Screen):
                     self.config["onefile"] = event.value
                 # 更新 no-pyi-switch 状态
                 self._update_no_pyi_switch_state()
-        
+
         # PyInstaller: 处理 onefile 开关变化
         if event.switch.id == "onefile-switch":
             try:

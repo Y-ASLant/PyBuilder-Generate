@@ -160,21 +160,27 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     # 包含包
     include_packages = config.get("include_packages", "")
     if include_packages:
-        packages = [p.strip() for p in re.split(r"[,\s，]+", include_packages) if p.strip()]
+        packages = [
+            p.strip() for p in re.split(r"[,\s，]+", include_packages) if p.strip()
+        ]
         for package in packages:
             lines.append(f"        '--include-package={package}',")
 
     # 包含模块
     include_modules = config.get("include_modules", "")
     if include_modules:
-        modules = [m.strip() for m in re.split(r"[,\s，]+", include_modules) if m.strip()]
+        modules = [
+            m.strip() for m in re.split(r"[,\s，]+", include_modules) if m.strip()
+        ]
         for module in modules:
             lines.append(f"        '--include-module={module}',")
 
     # 排除导入
     nofollow_imports = config.get("nofollow_imports", "")
     if nofollow_imports:
-        modules = [m.strip() for m in re.split(r"[,\s，]+", nofollow_imports) if m.strip()]
+        modules = [
+            m.strip() for m in re.split(r"[,\s，]+", nofollow_imports) if m.strip()
+        ]
         for module in modules:
             lines.append(f"        '--nofollow-import-to={module}',")
 
