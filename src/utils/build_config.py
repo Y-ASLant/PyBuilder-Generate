@@ -35,6 +35,13 @@ DEFAULT_BUILD_CONFIG = {
     "compiler": "msvc",
     "no_pyi_file": False,
     "follow_imports": True,  # 跟随所有导入的模块
+    "assume_yes_for_downloads": False,  # 自动下载依赖工具
+    # Nuitka 数据导入选项
+    "include_packages": "",  # 包含的包
+    "include_modules": "",  # 包含的模块
+    "nofollow_imports": "",  # 不跟随的导入
+    "include_data_files": "",  # 数据文件
+    "include_data_dirs": "",  # 数据目录
     # PyInstaller特有
     "clean": True,
     "noconfirm": False,
@@ -204,6 +211,22 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             lines.append(
                 f"follow_imports: {str(config.get('follow_imports', True)).lower()}\n"
             )
+            lines.append(
+                f"assume_yes_for_downloads: {str(config.get('assume_yes_for_downloads', False)).lower()}\n"
+            )
+            # Nuitka 数据导入选项
+            if config.get("include_packages"):
+                lines.append(f"include_packages: {config.get('include_packages')}\n")
+            if config.get("include_modules"):
+                lines.append(f"include_modules: {config.get('include_modules')}\n")
+            if config.get("nofollow_imports"):
+                lines.append(f"nofollow_imports: {config.get('nofollow_imports')}\n")
+            if config.get("include_data_files"):
+                lines.append(
+                    f"include_data_files: {config.get('include_data_files')}\n"
+                )
+            if config.get("include_data_dirs"):
+                lines.append(f"include_data_dirs: {config.get('include_data_dirs')}\n")
 
         # PyInstaller特有选项
         if config.get("build_tool") == "pyinstaller":

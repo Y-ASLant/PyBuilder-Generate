@@ -33,6 +33,7 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append('"""')
     lines.append("")
     lines.append("import sys")
+    lines.append("import os")
     lines.append("import subprocess")
     lines.append("import shutil")
     lines.append("import time")
@@ -190,9 +191,26 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
         entries = [e.strip() for e in include_data_files.split() if e.strip()]
         for data_entry in entries:
             if ";" in data_entry:
-                # 将 ; 替换为 = （Nuitka 使用 = 格式）
-                data_entry = data_entry.replace(";", "=")
-                lines.append(f"        '--include-data-files={data_entry}',")
+                src, dest = data_entry.split(";", 1)
+                # 将路径分割为部分，用于 os.path.join
+                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
+                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
+
+                # 生成 os.path.join 调用
+                src_code = (
+                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
+                    if len(src_parts) > 1
+                    else repr(src_parts[0] if src_parts else src)
+                )
+                dest_code = (
+                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
+                    if len(dest_parts) > 1
+                    else repr(dest_parts[0] if dest_parts else dest)
+                )
+
+                lines.append(
+                    f"        f'--include-data-files={{{src_code}}}={{{dest_code}}}',"
+                )
 
     # 数据目录（支持 ; 分隔符，转换为 Nuitka 的 = 格式）
     include_data_dirs = config.get("include_data_dirs", "")
@@ -200,9 +218,26 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
         entries = [e.strip() for e in include_data_dirs.split() if e.strip()]
         for data_entry in entries:
             if ";" in data_entry:
-                # 将 ; 替换为 = （Nuitka 使用 = 格式）
-                data_entry = data_entry.replace(";", "=")
-                lines.append(f"        '--include-data-dir={data_entry}',")
+                src, dest = data_entry.split(";", 1)
+                # 将路径分割为部分，用于 os.path.join
+                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
+                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
+
+                # 生成 os.path.join 调用
+                src_code = (
+                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
+                    if len(src_parts) > 1
+                    else repr(src_parts[0] if src_parts else src)
+                )
+                dest_code = (
+                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
+                    if len(dest_parts) > 1
+                    else repr(dest_parts[0] if dest_parts else dest)
+                )
+
+                lines.append(
+                    f"        f'--include-data-dir={{{src_code}}}={{{dest_code}}}',"
+                )
 
     # 插件
     plugins = config.get("plugins", [])
@@ -245,7 +280,6 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append(
         "        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')"
     )
-    lines.append("        import os")
     lines.append("        abs_output = os.path.abspath(OUTPUT_DIR)")
     lines.append("        print(f'{Color.GREEN}Output: {abs_output}{Color.RESET}')")
     lines.append("        if minutes > 0:")

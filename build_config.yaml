@@ -24,6 +24,9 @@ python_flag: -O
 compiler: msvc
 no_pyi_file: false
 follow_imports: true
+assume_yes_for_downloads: false
+include_packages: pygments
+include_data_dirs: src\style;src\style docs;docs
 
 # 排除的包
 exclude_packages:
