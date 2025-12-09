@@ -1,7 +1,7 @@
 # Nuitka 参数完整指南
 
 > 基于 Nuitka 2.8.9 版本
-> 标注说明：✅ 已实现 | ⚠️ 部分实现 | ❌ 未实现
+> 标注说明：✅ 已实现 | 部分实现 | ❌ 未实现
 
 ---
 
@@ -26,7 +26,7 @@
 | 参数 | 说明 | 状态 | 项目配置 |
 |------|------|------|----------|
 | `--mode=MODE` | 编译模式（官方推荐） | ✅ | `mode` |
-| `--main=FILE` | 主入口文件 | ⚠️ | `entry_file` (通过位置参数) |
+| `--main=FILE` | 主入口文件 | | `entry_file` (通过位置参数) |
 | `--python-debug` | 使用 Python 调试版本 | ❌ | - |
 | `--version` | 显示 Nuitka 版本信息 | ❌ | - |
 
@@ -60,7 +60,7 @@
 |------|------|------|----------|
 | `--clang` | 使用 Clang 编译器 | ✅ | `compiler: clang` |
 | `--mingw64` | 使用 MinGW64 (Windows) | ✅ | `compiler: mingw64` |
-| `--msvc=VERSION` | 使用 MSVC (latest, 14.3等) | ⚠️ | `compiler: msvc` (仅支持默认) |
+| `--msvc=VERSION` | 使用 MSVC (latest, 14.3等) | | `compiler: msvc` (仅支持默认) |
 
 ### 优化选项
 
@@ -302,7 +302,7 @@
 
 | 参数 | 说明 | 状态 |
 |------|------|------|
-| `--lto=CHOICE` | 链接时优化 | ⚠️ |
+| `--lto=CHOICE` | 链接时优化 | |
 | `--static-libpython=CHOICE` | 静态链接 Python | ❌ |
 | `--cf-protection=MODE` | 控制流保护 (GCC) | ❌ |
 
@@ -353,7 +353,7 @@
 
 ---
 
-## ⚠️ 警告控制（推荐优先级：⭐⭐）
+## 警告控制（推荐优先级：⭐⭐）
 
 | 参数 | 说明 | 状态 |
 |------|------|------|
@@ -545,7 +545,7 @@ quiet_mode: false       # --quiet ✅
 
 ---
 
-## ⚠️ 已知问题和注意事项
+## 已知问题和注意事项
 
 ### 参数兼容性
 

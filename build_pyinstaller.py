@@ -5,10 +5,11 @@ PyBuilder - PyInstaller 构建脚本
 """
 
 import sys
+import os
 import subprocess
 import shutil
 import time
-import os
+import platform
 
 
 # ANSI 颜色代码
@@ -32,17 +33,22 @@ OUTPUT_DIR = 'build'
 
 def build():
     """执行 PyInstaller 构建"""
+    # 获取平台信息
+    os_type = platform.system()
+    is_windows = os_type == 'Windows'
+    is_macos = os_type == 'Darwin'
+    is_linux = os_type == 'Linux'
+
     # 获取终端宽度
     width = shutil.get_terminal_size().columns
     separator = '-' * width
     start_time = time.time()
 
-    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION}{Color.RESET}')
+    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION} on {os_type}{Color.RESET}')
     print(separator)
 
     # 添加数据文件（根据操作系统使用不同分隔符）
-    import platform
-    data_separator = ';' if platform.system() == 'Windows' else ':'
+    data_separator = ';' if is_windows else ':'
 
     # 构建 PyInstaller 命令
     cmd = [
@@ -56,12 +62,18 @@ def build():
         '--noconfirm',
         '--log-level=WARN',
         f'--icon={ICON_FILE}',
-        '--collect-submodules=textual',
-        '--collect-data=pyfiglet',
-        f'--add-data={os.path.join('src', 'style')}{data_separator}{os.path.join('src', 'style')}',
-        f'--add-data={'docs'}{data_separator}{'docs'}',
-        ENTRY_FILE,
     ]
+
+    # 收集子模块
+    cmd.append('--collect-submodules=textual')
+
+    # 添加数据文件
+    cmd.append(f'--add-data={os.path.join('src', 'style')}{data_separator}{os.path.join('src', 'style')}')
+    cmd.append(f'--add-data={os.path.join('assets', 'pyfiglet')}{data_separator}{'pyfiglet'}')
+    cmd.append(f'--add-data={'docs'}{data_separator}{'docs'}')
+
+    # 添加入口文件
+    cmd.append(ENTRY_FILE)
 
     # 执行构建
     print(f'{Color.GRAY}Command:{Color.RESET}')

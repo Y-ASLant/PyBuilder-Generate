@@ -63,7 +63,11 @@ class PackageOptionsScreen(Screen):
                 yield Static(f"项目: {project_dir}", id="project-info")
 
             # 选项容器（将在on_mount中动态填充）
-            yield Container(id="options-fields")
+            # 添加加载指示器和提示文本
+            with Container(id="options-fields"):
+                from textual.widgets import LoadingIndicator
+                yield LoadingIndicator(id="loading-indicator")
+                yield Static("正在加载配置...", id="loading-text", classes="loading-hint")
 
             # 按钮
             with Horizontal(id="button-container"):
@@ -81,40 +85,62 @@ class PackageOptionsScreen(Screen):
             self.app.pop_screen()
             return
 
-        # 加载现有配置或使用默认配置
-        self.config = load_build_config(self.project_dir)
+        # 使用异步加载，避免阻塞渲染
+        self.call_after_refresh(self._load_and_create_fields)
+    
+    def _load_and_create_fields(self) -> None:
+        """异步加载配置并创建字段"""
+        try:
+            # 加载现有配置或使用默认配置
+            self.config = load_build_config(self.project_dir)
 
-        # 加载插件配置
-        plugins_value = self.config.get("plugins", "")
-        if isinstance(plugins_value, str):
-            self.selected_plugins = [
-                p.strip() for p in plugins_value.split(",") if p.strip()
-            ]
-        else:
-            self.selected_plugins = (
-                plugins_value if isinstance(plugins_value, list) else []
+            # 加载插件配置
+            plugins_value = self.config.get("plugins", "")
+            if isinstance(plugins_value, str):
+                self.selected_plugins = [
+                    p.strip() for p in plugins_value.split(",") if p.strip()
+                ]
+            else:
+                self.selected_plugins = (
+                    plugins_value if isinstance(plugins_value, list) else []
+                )
+
+            # 加载编译器配置
+            self.selected_compiler = self.config.get("compiler", "msvc")
+
+            # 根据构庻工具动态生成选项（开关值已在创庻时设置）
+            self._create_options_fields()
+            
+            # 初始化界面状态
+            if self.config.get("build_tool") == "nuitka":
+                self._update_no_pyi_switch_state()
+            elif self.config.get("build_tool") == "pyinstaller":
+                self._update_pyinstaller_input_states()
+                
+        except Exception as e:
+            # 错误处理：显示错误信息
+            self._show_load_error(str(e))
+    
+    def _show_load_error(self, error_msg: str) -> None:
+        """显示加载错误"""
+        options_container = self.query_one("#options-fields", Container)
+        
+        # 移除加载器
+        try:
+            self.query_one("#loading-indicator").remove()
+            self.query_one("#loading-text").remove()
+        except Exception:
+            pass
+        
+        # 显示错误信息
+        from textual.widgets import Static
+        options_container.mount(
+            Static(
+                f"加载配置失败\n\n{error_msg}\n\n请检查项目配置",
+                id="error-message",
+                classes="error-text"
             )
-
-        # 加载编译器配置
-        self.selected_compiler = self.config.get("compiler", "msvc")
-
-        # 根据构庻工具动态生成选项（开关值已在创庻时设置）
-        self._create_options_fields()
-
-        # 如果是 Nuitka，根据模式设置 no-pyi-switch 状态
-        if self.config.get("build_tool") == "nuitka":
-            self._update_no_pyi_switch_state()
-
-        # 如果是 PyInstaller，根据单文件模式设置输入框状态
-        if self.config.get("build_tool") == "pyinstaller":
-            is_onefile = self.config.get("onefile", True)
-            try:
-                # 单文件模式：禁用内部目录，启用启动画面和运行时临时目录
-                self.query_one("#contents-dir-input", Input).disabled = is_onefile
-                self.query_one("#splash-image-input", Input).disabled = not is_onefile
-                self.query_one("#runtime-tmpdir-input", Input).disabled = not is_onefile
-            except Exception:
-                pass
+        )
 
     def _create_switch_widget(
         self, switch_id: str, label: str, default_value: bool, config_key: str
@@ -191,10 +217,39 @@ class PackageOptionsScreen(Screen):
         except Exception:
             pass
 
+    def _update_pyinstaller_input_states(self):
+        """更新 PyInstaller 输入框状态（根据单文件模式）"""
+        try:
+            # 获取单文件模式开关的状态
+            onefile_switch = self.query_one("#onefile-switch", Switch)
+            is_onefile = onefile_switch.value
+
+            # 内部目录名称（非单文件模式时启用）
+            contents_dir_input = self.query_one("#contents-dir-input", Input)
+            contents_dir_input.disabled = is_onefile
+
+            # 启动画面图片（仅单文件模式）
+            splash_image_input = self.query_one("#splash-image-input", Input)
+            splash_image_input.disabled = not is_onefile
+
+            # 运行时临时目录（仅单文件模式）
+            runtime_tmpdir_input = self.query_one("#runtime-tmpdir-input", Input)
+            runtime_tmpdir_input.disabled = not is_onefile
+
+        except Exception:
+            pass
+
     def _create_options_fields(self) -> None:
         """根据构建工具创建选项字段"""
         build_tool = self.config.get("build_tool", "nuitka")
         options_container = self.query_one("#options-fields", Container)
+        
+        # 移除加载指示器和提示文本
+        try:
+            self.query_one("#loading-indicator").remove()
+            self.query_one("#loading-text").remove()
+        except Exception:
+            pass
 
         # Nuitka特有选项 - 使用标签页分组
         if build_tool == "nuitka":

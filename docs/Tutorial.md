@@ -51,7 +51,7 @@ uv run build_pyinstaller.py
 | **排除模块** | 排除不需要的模块 | `tkinter,matplotlib` |
 | **收集子模块** | 收集包的所有子模块 | `textual` |
 | **收集数据** | 收集数据文件 | `textual:textual` |
-| **收集全部** | 自动收集所有依赖 | ⚠️ 会增大体积 |
+| **收集全部** | 自动收集所有依赖 | 会增大体积 |
 
 ### 系统特性（Windows）
 

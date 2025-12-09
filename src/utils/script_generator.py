@@ -37,6 +37,7 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("import subprocess")
     lines.append("import shutil")
     lines.append("import time")
+    lines.append("import platform")
     lines.append("")
     lines.append("")
     lines.append(COLOR_CLASS_CODE)
@@ -57,13 +58,19 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     # 构建函数
     lines.append("def build():")
     lines.append('    """执行 Nuitka 构建"""')
+    lines.append("    # 获取平台信息")
+    lines.append("    os_type = platform.system()")
+    lines.append("    is_windows = os_type == 'Windows'")
+    lines.append("    is_macos = os_type == 'Darwin'")
+    lines.append("    is_linux = os_type == 'Linux'")
+    lines.append("    ")
     lines.append("    # 获取终端宽度")
     lines.append("    width = shutil.get_terminal_size().columns")
     lines.append("    separator = '-' * width")
     lines.append("    start_time = time.time()")
     lines.append("")
     lines.append(
-        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION}{Color.RESET}')"
+        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION} on {os_type}{Color.RESET}')"
     )
     lines.append("    print(separator)")
     lines.append("")
@@ -123,15 +130,6 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     if python_flag:
         lines.append(f"        '--python-flag={python_flag}',")
 
-    # 编译器
-    compiler = config.get("compiler", "msvc")
-    if compiler == "clang":
-        lines.append("        '--clang',")
-    elif compiler == "mingw64":
-        lines.append("        '--mingw64',")
-    elif compiler == "clang-cl":
-        lines.append("        '--clang-cl',")
-
     # 静默模式和进度显示
     quiet_mode = config.get("quiet_mode", False)
     if quiet_mode:
@@ -185,59 +183,32 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
         for module in modules:
             lines.append(f"        '--nofollow-import-to={module}',")
 
-    # 数据文件（支持 ; 分隔符，转换为 Nuitka 的 = 格式）
-    include_data_files = config.get("include_data_files", "")
-    if include_data_files:
-        entries = [e.strip() for e in include_data_files.split() if e.strip()]
-        for data_entry in entries:
-            if ";" in data_entry:
-                src, dest = data_entry.split(";", 1)
-                # 将路径分割为部分，用于 os.path.join
-                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
-                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
+    # 辅助函数：生成路径代码
+    def generate_path_code(path_str: str) -> str:
+        """生成 os.path.join 代码字符串"""
+        parts = [p for p in path_str.replace("\\", "/").split("/") if p]
+        return (
+            f"os.path.join({', '.join(repr(p) for p in parts)})"
+            if len(parts) > 1
+            else repr(parts[0] if parts else path_str)
+        )
 
-                # 生成 os.path.join 调用
-                src_code = (
-                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
-                    if len(src_parts) > 1
-                    else repr(src_parts[0] if src_parts else src)
-                )
-                dest_code = (
-                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
-                    if len(dest_parts) > 1
-                    else repr(dest_parts[0] if dest_parts else dest)
-                )
+    # 数据文件和数据目录（统一处理）
+    data_params = [
+        ("include_data_files", "--include-data-files"),
+        ("include_data_dirs", "--include-data-dir"),
+    ]
 
-                lines.append(
-                    f"        f'--include-data-files={{{src_code}}}={{{dest_code}}}',"
-                )
-
-    # 数据目录（支持 ; 分隔符，转换为 Nuitka 的 = 格式）
-    include_data_dirs = config.get("include_data_dirs", "")
-    if include_data_dirs:
-        entries = [e.strip() for e in include_data_dirs.split() if e.strip()]
-        for data_entry in entries:
-            if ";" in data_entry:
-                src, dest = data_entry.split(";", 1)
-                # 将路径分割为部分，用于 os.path.join
-                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
-                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
-
-                # 生成 os.path.join 调用
-                src_code = (
-                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
-                    if len(src_parts) > 1
-                    else repr(src_parts[0] if src_parts else src)
-                )
-                dest_code = (
-                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
-                    if len(dest_parts) > 1
-                    else repr(dest_parts[0] if dest_parts else dest)
-                )
-
-                lines.append(
-                    f"        f'--include-data-dir={{{src_code}}}={{{dest_code}}}',"
-                )
+    for config_key, flag in data_params:
+        data_value = config.get(config_key, "")
+        if data_value:
+            entries = [e.strip() for e in data_value.split() if e.strip()]
+            for data_entry in entries:
+                if ";" in data_entry:
+                    src, dest = data_entry.split(";", 1)
+                    src_code = generate_path_code(src)
+                    dest_code = generate_path_code(dest)
+                    lines.append(f"        f'{flag}={{{src_code}}}={{{dest_code}}}',")
 
     # 插件
     plugins = config.get("plugins", [])
@@ -246,21 +217,62 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     for plugin in plugins:
         lines.append(f"        '--enable-plugin={plugin}',")
 
-    # 图标
-    if config.get("icon_file"):
-        lines.append("        f'--windows-icon-from-ico={ICON_FILE}',")
-
-    # 公司名称
-    if config.get("company_name"):
-        lines.append("        f'--windows-company-name={COMPANY_NAME}',")
-
-    # 产品版本
-    lines.append("        f'--windows-product-version={VERSION}',")
-    lines.append("        f'--windows-file-version={VERSION}',")
-
-    # 入口文件
-    lines.append("        ENTRY_FILE,")
+    # 关闭初始命令列表
     lines.append("    ]")
+    lines.append("")
+
+    # Windows特定参数（仅在Windows平台添加）
+    if config.get("icon_file"):
+        lines.append("    # Windows图标（仅Windows平台）")
+        lines.append("    if is_windows:")
+        lines.append("        cmd.append(f'--windows-icon-from-ico={ICON_FILE}')")
+        lines.append("")
+
+    if config.get("company_name"):
+        lines.append("    # Windows公司名称（仅Windows平台）")
+        lines.append("    if is_windows:")
+        lines.append("        cmd.append(f'--windows-company-name={COMPANY_NAME}')")
+        lines.append("")
+
+    # 产品版本（仅Windows平台）
+    lines.append("    # Windows版本信息（仅Windows平台）")
+    lines.append("    if is_windows:")
+    lines.append("        cmd.append(f'--windows-product-version={VERSION}')")
+    lines.append("        cmd.append(f'--windows-file-version={VERSION}')")
+    lines.append("")
+
+    # 编译器（根据平台动态选择）
+    compiler = config.get("compiler", "")
+    if compiler:
+        lines.append("    # 根据平台选择编译器")
+        lines.append(f"    compiler = '{compiler}'")
+        lines.append("    if is_windows:")
+        lines.append("        # Windows平台编译器")
+        lines.append("        if compiler == 'clang':")
+        lines.append("            cmd.append('--clang')")
+        lines.append("        elif compiler == 'mingw64':")
+        lines.append("            cmd.append('--mingw64')")
+        lines.append("        elif compiler == 'clang-cl':")
+        lines.append("            cmd.append('--clang-cl')")
+        lines.append("        # msvc是默认，不需要参数")
+        lines.append("    elif is_linux:")
+        lines.append("        # Linux平台编译器")
+        lines.append("        if compiler == 'clang':")
+        lines.append("            cmd.append('--clang')")
+        lines.append("        # gcc是默认，不需要参数")
+        lines.append("    elif is_macos:")
+        lines.append("        # macOS平台编译器")
+        lines.append("        if compiler != 'clang':")
+        lines.append("            # clang是macOS默认，其他需要指定")
+        lines.append("            if compiler == 'gcc':")
+        lines.append(
+            "                print(f'{Color.YELLOW}注意: macOS推荐使用Clang{Color.RESET}')"
+        )
+        lines.append("")
+
+    # 入口文件（最后添加）
+    lines.append("    # 添加入口文件")
+    lines.append("    cmd.append(ENTRY_FILE)")
     lines.append("")
 
     # 执行构建
@@ -326,10 +338,11 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append('"""')
     lines.append("")
     lines.append("import sys")
+    lines.append("import os")
     lines.append("import subprocess")
     lines.append("import shutil")
     lines.append("import time")
-    lines.append("import os")
+    lines.append("import platform")
     lines.append("")
     lines.append("")
     lines.append(COLOR_CLASS_CODE)
@@ -352,13 +365,19 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     # 构建函数
     lines.append("def build():")
     lines.append('    """执行 PyInstaller 构建"""')
+    lines.append("    # 获取平台信息")
+    lines.append("    os_type = platform.system()")
+    lines.append("    is_windows = os_type == 'Windows'")
+    lines.append("    is_macos = os_type == 'Darwin'")
+    lines.append("    is_linux = os_type == 'Linux'")
+    lines.append("")
     lines.append("    # 获取终端宽度")
     lines.append("    width = shutil.get_terminal_size().columns")
     lines.append("    separator = '-' * width")
     lines.append("    start_time = time.time()")
     lines.append("")
     lines.append(
-        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION}{Color.RESET}')"
+        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION} on {os_type}{Color.RESET}')"
     )
     lines.append("    print(separator)")
     lines.append("")
@@ -367,10 +386,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     add_data = config.get("add_data", "")
     if add_data:
         lines.append("    # 添加数据文件（根据操作系统使用不同分隔符）")
-        lines.append("    import platform")
-        lines.append(
-            "    data_separator = ';' if platform.system() == 'Windows' else ':'"
-        )
+        lines.append("    data_separator = ';' if is_windows else ':'")
         lines.append("")
 
     # 构建命令
@@ -426,84 +442,106 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     if config.get("splash_image") and onefile_mode:
         lines.append("        f'--splash={SPLASH_IMAGE}',")
 
-    # UAC 管理员权限
+    # UAC 管理员权限（Windows特定）
     if config.get("uac_admin", False):
-        lines.append("        '--uac-admin',")
+        lines.append("        '--uac-admin',  # Windows-only")
 
     # 运行时临时目录（仅单文件模式）
     runtime_tmpdir = config.get("runtime_tmpdir", "")
     if runtime_tmpdir and onefile_mode:
         lines.append(f"        '--runtime-tmpdir={runtime_tmpdir}',")
 
-    # 系统特性参数（使用字典映射）
+    # 关闭初始命令列表
+    lines.append("    ]")
+    lines.append("")
+
+    # 平台特定参数（使用字典映射简化重复代码）
     platform_params = {
-        "target_architecture": "--target-architecture",
-        "win_version_file": "--version-file",
-        "win_manifest": "--manifest",
-        "osx_bundle_identifier": "--osx-bundle-identifier",
-        "osx_entitlements_file": "--osx-entitlements-file",
-        "codesign_identity": "--codesign-identity",
+        "windows": [
+            ("win_version_file", "--version-file", "Windows版本文件"),
+            ("win_manifest", "--manifest", "Windows Manifest"),
+        ],
+        "macos": [
+            ("target_architecture", "--target-architecture", "macOS架构"),
+            ("osx_bundle_identifier", "--osx-bundle-identifier", "macOS Bundle标识"),
+            ("osx_entitlements_file", "--osx-entitlements-file", "macOS权限文件"),
+            ("codesign_identity", "--codesign-identity", "macOS代码签名"),
+        ],
     }
 
-    for config_key, param_name in platform_params.items():
-        value = config.get(config_key, "")
-        if value:
-            lines.append(f"        '{param_name}={value}',")
+    for platform_type, params in platform_params.items():
+        condition = "is_windows" if platform_type == "windows" else "is_macos"
+        for config_key, flag, comment in params:
+            value = config.get(config_key, "")
+            if value:
+                lines.append(
+                    f"    # {comment}（仅{'Windows' if platform_type == 'windows' else 'macOS'}平台）"
+                )
+                lines.append(f"    if {condition}:")
+                lines.append(f"        cmd.append('{flag}={value}')")
+                lines.append("")
 
     # 隐藏导入
     hidden_imports = config.get("hidden_imports", "")
     if hidden_imports:
-        # 支持多种分隔符：空格、逗号
+        lines.append("    # 隐藏导入")
         modules = [m.strip() for m in re.split(r"[,\s]+", hidden_imports) if m.strip()]
         for module in modules:
-            lines.append(f"        '--hidden-import={module}',")
+            lines.append(f"    cmd.append('--hidden-import={module}')")
+        lines.append("")
 
     # 排除模块
     exclude_modules = config.get("exclude_modules", "")
     if exclude_modules:
-        # 支持多种分隔符：空格、逗号
+        lines.append("    # 排除模块")
         modules = [m.strip() for m in re.split(r"[,\s]+", exclude_modules) if m.strip()]
         for module in modules:
-            lines.append(f"        '--exclude-module={module}',")
+            lines.append(f"    cmd.append('--exclude-module={module}')")
+        lines.append("")
 
     # 收集子模块
     collect_submodules = config.get("collect_submodules", "")
     if collect_submodules:
-        # 支持多种分隔符：空格、逗号
+        lines.append("    # 收集子模块")
         packages = [
             p.strip() for p in re.split(r"[,\s]+", collect_submodules) if p.strip()
         ]
         for package in packages:
-            lines.append(f"        '--collect-submodules={package}',")
+            lines.append(f"    cmd.append('--collect-submodules={package}')")
+        lines.append("")
 
     # 收集数据文件
     collect_data = config.get("collect_data", "")
     if collect_data:
-        # 支持多种分隔符：空格、逗号
+        lines.append("    # 收集数据文件")
         packages = [p.strip() for p in re.split(r"[,\s]+", collect_data) if p.strip()]
         for package in packages:
-            lines.append(f"        '--collect-data={package}',")
+            lines.append(f"    cmd.append('--collect-data={package}')")
+        lines.append("")
 
     # 收集二进制文件
     collect_binaries = config.get("collect_binaries", "")
     if collect_binaries:
-        # 支持多种分隔符：空格、逗号
+        lines.append("    # 收集二进制文件")
         packages = [
             p.strip() for p in re.split(r"[,\s]+", collect_binaries) if p.strip()
         ]
         for package in packages:
-            lines.append(f"        '--collect-binaries={package}',")
+            lines.append(f"    cmd.append('--collect-binaries={package}')")
+        lines.append("")
 
     # 收集所有（子模块+数据+二进制）
     collect_all = config.get("collect_all", "")
     if collect_all:
-        # 支持多种分隔符：空格、逗号
+        lines.append("    # 收集所有")
         packages = [p.strip() for p in re.split(r"[,\s]+", collect_all) if p.strip()]
         for package in packages:
-            lines.append(f"        '--collect-all={package}',")
+            lines.append(f"    cmd.append('--collect-all={package}')")
+        lines.append("")
 
     # 添加数据文件
     if add_data:
+        lines.append("    # 添加数据文件")
         entries = [e.strip() for e in add_data.split() if e.strip()]
         for data_entry in entries:
             if ";" in data_entry:
@@ -525,14 +563,16 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
                 )
 
                 lines.append(
-                    f"        f'--add-data={{{src_code}}}{{data_separator}}{{{dest_code}}}',"
+                    f"    cmd.append(f'--add-data={{{src_code}}}{{data_separator}}{{{dest_code}}}')"
                 )
             else:
-                lines.append(f"        '--add-data={data_entry}',")
+                lines.append(f"    cmd.append('--add-data={data_entry}')")
+        lines.append("")
 
     # 添加二进制文件
     add_binary = config.get("add_binary", "")
     if add_binary:
+        lines.append("    # 添加二进制文件")
         entries = [e.strip() for e in add_binary.split() if e.strip()]
         for binary_entry in entries:
             if ";" in binary_entry:
@@ -554,14 +594,15 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
                 )
 
                 lines.append(
-                    f"        f'--add-binary={{{src_code}}}{{data_separator}}{{{dest_code}}}',"
+                    f"    cmd.append(f'--add-binary={{{src_code}}}{{data_separator}}{{{dest_code}}}')"
                 )
             else:
-                lines.append(f"        '--add-binary={binary_entry}',")
+                lines.append(f"    cmd.append('--add-binary={binary_entry}')")
+        lines.append("")
 
-    # 入口文件
-    lines.append("        ENTRY_FILE,")
-    lines.append("    ]")
+    # 入口文件（最后添加）
+    lines.append("    # 添加入口文件")
+    lines.append("    cmd.append(ENTRY_FILE)")
     lines.append("")
 
     # 执行构建
