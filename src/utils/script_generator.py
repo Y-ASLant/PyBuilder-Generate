@@ -434,26 +434,38 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     if config.get("debug", False):
         lines.append("        '--debug=all',")
 
-    # 图标
+    # 关闭初始命令列表
+    lines.append("    ]")
+    lines.append("")
+
+    # 图标（仅 Windows 和 macOS，Linux 不支持）
     if config.get("icon_file"):
-        lines.append("        f'--icon={ICON_FILE}',")
+        lines.append("    # 图标文件（仅Windows和macOS平台）")
+        lines.append("    if is_windows or is_macos:")
+        lines.append("        cmd.append(f'--icon={ICON_FILE}')")
+        lines.append("")
 
     # 启动画面（仅单文件模式）
     if config.get("splash_image") and onefile_mode:
-        lines.append("        f'--splash={SPLASH_IMAGE}',")
+        lines.append("    # 启动画面（仅单文件模式）")
+        lines.append("    if onefile_mode:")
+        lines.append("        cmd.append(f'--splash={SPLASH_IMAGE}')")
+        lines.append("")
 
-    # UAC 管理员权限（Windows特定）
+    # UAC 管理员权限（仅 Windows）
     if config.get("uac_admin", False):
-        lines.append("        '--uac-admin',  # Windows-only")
+        lines.append("    # UAC管理员权限（仅Windows平台）")
+        lines.append("    if is_windows:")
+        lines.append("        cmd.append('--uac-admin')")
+        lines.append("")
 
     # 运行时临时目录（仅单文件模式）
     runtime_tmpdir = config.get("runtime_tmpdir", "")
     if runtime_tmpdir and onefile_mode:
-        lines.append(f"        '--runtime-tmpdir={runtime_tmpdir}',")
-
-    # 关闭初始命令列表
-    lines.append("    ]")
-    lines.append("")
+        lines.append("    # 运行时临时目录（仅单文件模式）")
+        lines.append("    if onefile_mode:")
+        lines.append(f"        cmd.append('--runtime-tmpdir={runtime_tmpdir}')")
+        lines.append("")
 
     # 平台特定参数（使用字典映射简化重复代码）
     platform_params = {
