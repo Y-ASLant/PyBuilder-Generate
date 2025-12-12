@@ -61,8 +61,11 @@ def build():
         '--clean',
         '--noconfirm',
         '--log-level=WARN',
-        f'--icon={ICON_FILE}',
     ]
+
+    # 图标文件（仅Windows和macOS平台）
+    if is_windows or is_macos:
+        cmd.append(f'--icon={ICON_FILE}')
 
     # 收集子模块
     cmd.append('--collect-submodules=textual')
