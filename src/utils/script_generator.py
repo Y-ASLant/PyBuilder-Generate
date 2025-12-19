@@ -221,7 +221,7 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     if not config.get("show_console", False):
         lines.append("    # 禁用控制台窗口（仅Windows平台）")
         lines.append("    if is_windows:")
-        lines.append("        cmd.append('--disable-console')")
+        lines.append("        cmd.append('--windows-console-mode=disable')")
         lines.append("")
 
     # Windows特定参数（仅在Windows平台添加）
