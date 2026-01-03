@@ -21,7 +21,7 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     source_dir = config.get("installer_source_dir", config.get("output_dir", "build"))
     output_dir = config.get("installer_output_dir", "dist/installer")
     icon_file = config.get("installer_icon", config.get("icon_file", ""))
-    
+
     # 安装目录
     install_dir = config.get("installer_install_dir", "").strip()
     if not install_dir:
@@ -155,28 +155,42 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     # [Tasks] 部分
     lines.append("[Tasks]")
     if desktop_icon:
-        lines.append('Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked')
+        lines.append(
+            'Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked'
+        )
     if add_path:
         if path_scope == "system":
-            lines.append('Name: "addtopath"; Description: "添加到系统 PATH 环境变量"; GroupDescription: "其他选项:"')
+            lines.append(
+                'Name: "addtopath"; Description: "添加到系统 PATH 环境变量"; GroupDescription: "其他选项:"'
+            )
         else:
-            lines.append('Name: "addtopath"; Description: "添加到用户 PATH 环境变量"; GroupDescription: "其他选项:"')
+            lines.append(
+                'Name: "addtopath"; Description: "添加到用户 PATH 环境变量"; GroupDescription: "其他选项:"'
+            )
     if not desktop_icon and not add_path:
         lines.append("; 无额外任务")
     lines.append("")
 
     # [Files] 部分
     lines.append("[Files]")
-    lines.append(f'Source: "{source_dir}\\*"; DestDir: "{{app}}"; Flags: ignoreversion recursesubdirs createallsubdirs')
+    lines.append(
+        f'Source: "{source_dir}\\*"; DestDir: "{{app}}"; Flags: ignoreversion recursesubdirs createallsubdirs'
+    )
     lines.append("")
 
     # [Icons] 部分
     lines.append("[Icons]")
     if start_menu:
-        lines.append('Name: "{group}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"')
-        lines.append('Name: "{group}\\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"')
+        lines.append(
+            'Name: "{group}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"'
+        )
+        lines.append(
+            'Name: "{group}\\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"'
+        )
     if desktop_icon:
-        lines.append('Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon')
+        lines.append(
+            'Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon'
+        )
     if not start_menu and not desktop_icon:
         lines.append("; 不创建快捷方式")
     lines.append("")
@@ -184,23 +198,29 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     # [Run] 部分
     if run_after:
         lines.append("[Run]")
-        lines.append('Filename: "{app}\\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, \'&\', \'&&\')}}"; Flags: nowait postinstall skipifsilent shellexec')
+        lines.append(
+            "Filename: \"{app}\\{#MyAppExeName}\"; Description: \"{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}\"; Flags: nowait postinstall skipifsilent shellexec"
+        )
         lines.append("")
 
     # [Registry] 部分 - PATH 环境变量
     if add_path:
         lines.append("[Registry]")
         if path_scope == "system":
-            lines.append('; 添加到系统 PATH (需要管理员权限)')
-            lines.append('Root: HKLM; Subkey: "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')')
+            lines.append("; 添加到系统 PATH (需要管理员权限)")
+            lines.append(
+                'Root: HKLM; Subkey: "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')'
+            )
         else:
-            lines.append('; 添加到用户 PATH')
-            lines.append('Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')')
+            lines.append("; 添加到用户 PATH")
+            lines.append(
+                'Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')'
+            )
         lines.append("")
 
     # [Code] 部分
     lines.append("[Code]")
-    
+
     # PATH 检查函数
     if add_path:
         lines.append("// 检查路径是否已在 PATH 中")
@@ -209,9 +229,13 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         lines.append("  OrigPath: string;")
         lines.append("begin")
         if path_scope == "system":
-            lines.append("  if not RegQueryStringValue(HKLM, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment', 'Path', OrigPath) then")
+            lines.append(
+                "  if not RegQueryStringValue(HKLM, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment', 'Path', OrigPath) then"
+            )
         else:
-            lines.append("  if not RegQueryStringValue(HKCU, 'Environment', 'Path', OrigPath) then")
+            lines.append(
+                "  if not RegQueryStringValue(HKCU, 'Environment', 'Path', OrigPath) then"
+            )
         lines.append("  begin")
         lines.append("    Result := True;")
         lines.append("    exit;")
@@ -222,7 +246,9 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
 
         # 卸载时清理 PATH
         lines.append("// 卸载时从 PATH 中移除")
-        lines.append("procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);")
+        lines.append(
+            "procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);"
+        )
         lines.append("var")
         lines.append("  OrigPath, NewPath, AppPath: string;")
         lines.append("  P: Integer;")
@@ -230,9 +256,13 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         lines.append("  if CurUninstallStep = usUninstall then")
         lines.append("  begin")
         if path_scope == "system":
-            lines.append("    if RegQueryStringValue(HKLM, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment', 'Path', OrigPath) then")
+            lines.append(
+                "    if RegQueryStringValue(HKLM, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment', 'Path', OrigPath) then"
+            )
         else:
-            lines.append("    if RegQueryStringValue(HKCU, 'Environment', 'Path', OrigPath) then")
+            lines.append(
+                "    if RegQueryStringValue(HKCU, 'Environment', 'Path', OrigPath) then"
+            )
         lines.append("    begin")
         lines.append("      AppPath := ExpandConstant('{app}');")
         lines.append("      NewPath := OrigPath;")
@@ -241,9 +271,13 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         lines.append("      begin")
         lines.append("        Delete(NewPath, P, Length(AppPath) + 1);")
         if path_scope == "system":
-            lines.append("        RegWriteStringValue(HKLM, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment', 'Path', NewPath);")
+            lines.append(
+                "        RegWriteStringValue(HKLM, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment', 'Path', NewPath);"
+            )
         else:
-            lines.append("        RegWriteStringValue(HKCU, 'Environment', 'Path', NewPath);")
+            lines.append(
+                "        RegWriteStringValue(HKCU, 'Environment', 'Path', NewPath);"
+            )
         lines.append("      end;")
         lines.append("    end;")
         lines.append("  end;")
@@ -261,7 +295,9 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     return "\n".join(lines)
 
 
-def generate_installer_script(config: Dict[str, Any], project_dir: Path) -> tuple[bool, str]:
+def generate_installer_script(
+    config: Dict[str, Any], project_dir: Path
+) -> tuple[bool, str]:
     """
     生成安装包脚本
     返回 (是否成功, 消息)
@@ -274,11 +310,12 @@ def generate_installer_script(config: Dict[str, Any], project_dir: Path) -> tupl
             config["installer_appid"] = app_id
             # 立即保存 AppId 到配置文件
             from src.utils import save_build_config
+
             save_build_config(project_dir, config)
 
         # 目前只支持 Inno Setup
         script_content = generate_inno_setup_script(config, project_dir)
-        
+
         app_name = config.get("installer_app_name", config.get("project_name", "MyApp"))
         script_name = f"{app_name}_setup.iss"
 
@@ -294,7 +331,7 @@ AppId: {app_id}
 
 使用方法:
 1. 安装 Inno Setup 6: https://jrsoftware.org/isinfo.php
-2. 确保已编译好可执行文件到 {config.get('installer_source_dir', 'build')} 目录
+2. 确保已编译好可执行文件到 {config.get("installer_source_dir", "build")} 目录
 3. 使用 Inno Setup 编译器打开 {script_name}
 4. 点击 Build -> Compile 生成安装包
 

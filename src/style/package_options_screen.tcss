@@ -205,3 +205,7 @@ Tab.-active {
 .inputs-row > .field-group:last-child {
     margin-right: 0;
 }
+
+.inputs-row > .appid-full-width {
+    width: 100%;
+}

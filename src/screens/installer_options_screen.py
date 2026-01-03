@@ -160,7 +160,7 @@ class InstallerOptionsScreen(Screen):
                         ("管理员权限", "admin"),
                         ("用户自选", "dialog"),
                     ],
-                    value=self.config.get("installer_privileges", "lowest"),
+                    value=self.config.get("installer_privileges", "dialog"),
                     id="privileges-select",
                     classes="field-select",
                     allow_blank=False,
@@ -243,20 +243,20 @@ class InstallerOptionsScreen(Screen):
             classes="inputs-row",
         )
 
-        # AppId（留空则自动生成）- 显示时去掉花括号
+        # AppId - 单独一行，宽度占满
         appid_display = self.config.get("installer_appid", "")
         if isinstance(appid_display, str):
             appid_display = appid_display.strip("{}")
         output_row4 = Horizontal(
-            self._create_input_widget(
-                "appid-input", "AppId (留空自动生成):",
-                "升级时保持一致",
-                appid_display
-            ),
             Vertical(
-                Label("", classes="field-label"),
-                Static("", classes="field-input"),
-                classes="field-group",
+                Label("AppId (留空自动生成，升级时保持一致):", classes="field-label"),
+                Input(
+                    value=appid_display,
+                    placeholder="例如: 12345678-1234-1234-1234-123456789ABC",
+                    id="appid-input",
+                    classes="field-input",
+                ),
+                classes="field-group appid-full-width",
             ),
             classes="inputs-row",
         )

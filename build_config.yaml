@@ -39,7 +39,7 @@ installer_source_dir: build
 installer_output_dir: dist/installer
 installer_icon: assets/app.ico
 installer_appid: 3570A6C9-D68D-41D0-A6A0-4C3E3E4F8ECF
-installer_privileges: lowest
+installer_privileges: dialog
 installer_compression: lzma2/ultra64
 installer_path_scope: user
 installer_desktop_icon: true
