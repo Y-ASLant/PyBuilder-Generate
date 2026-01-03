@@ -24,9 +24,9 @@ class ModeSelectorScreen(Screen):
         super().__init__()
         self.selected_mode = "full"  # 默认选择完整模式
         self.mode_descriptions = {
-            "full": "完整模式 - 创建编译脚本 + Linux包生成脚本 (推荐)\n- 生成完整的编译和打包流程\n- 适合需要发布到Linux平台的项目\n- 一站式解决方案",
+            "full": "完整模式 - 创建编译脚本 + 安装包生成脚本 (推荐)\n- 生成完整的编译和打包流程\n- 适合需要发布的项目\n- 一站式解决方案",
             "compile": "编译模式 - 仅创建编译脚本\n- 使用 Nuitka/PyInstaller 编译Python项目\n- 生成独立可执行文件\n- 适合只需要编译的场景",
-            "package": "打包模式 - 仅创建Linux包生成脚本\n- 生成 DEB/RPM 等Linux安装包\n- 适合已有可执行文件的项目\n- 简化Linux发布流程",
+            "package": "打包模式 - 仅创建安装包生成脚本\n- Windows: Inno Setup (.iss)\n- Linux: nfpm (deb/rpm)\n- macOS: 开发中\n- 适合已有可执行文件的项目",
         }
 
     def compose(self) -> ComposeResult:
@@ -41,15 +41,11 @@ class ModeSelectorScreen(Screen):
                 yield Static(f"项目: {project_name.name}", id="project-info")
 
             # 模式选择
-            # 下拉选择构建模式
             yield Select(
                 options=[
                     ("完整模式 (推荐)", "full"),
                     ("编译模式 - 将项目编译为可执行文件", "compile"),
-                    (
-                        "打包模式 - 将可执行文件打包为deb、rpm、exe的安装包",
-                        "package",
-                    ),
+                    ("打包模式 - 将可执行文件打包为安装包", "package"),
                 ],
                 prompt="选择构建模式",
                 allow_blank=False,
@@ -70,11 +66,9 @@ class ModeSelectorScreen(Screen):
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """下拉选择变化事件"""
-        # 更新选中的模式值
         mode_value = event.value
         if mode_value in ("full", "compile", "package"):
             self.selected_mode = mode_value
-            # 更新下方说明
             desc = self.mode_descriptions.get(self.selected_mode, "")
             desc_widget = self.query_one("#mode-description", Static)
             desc_widget.update(desc)
@@ -94,10 +88,8 @@ class ModeSelectorScreen(Screen):
 
     def action_confirm(self) -> None:
         """确认选择并进入下一步"""
-        # 保存选择的模式到 app
         self.app.build_mode = self.selected_mode
 
-        # 显示提示
         mode_names = {
             "full": "完整模式",
             "compile": "编译模式",
@@ -108,15 +100,13 @@ class ModeSelectorScreen(Screen):
             severity="information",
         )
 
-        # 根据选择的模式跳转到对应的配置屏幕
         if self.selected_mode == "compile":
-            # 编译模式：跳转到编译配置屏幕
             from src.screens.compile_config_screen import CompileConfigScreen
 
             self.app.push_screen(CompileConfigScreen())
         elif self.selected_mode == "full":
-            # 完整模式：TODO
             self.app.notify("完整模式配置功能开发中...", severity="warning")
         elif self.selected_mode == "package":
-            # 打包模式：TODO
-            self.app.notify("打包模式配置功能开发中...", severity="warning")
+            from src.screens.installer_config_screen import InstallerConfigScreen
+
+            self.app.push_screen(InstallerConfigScreen())

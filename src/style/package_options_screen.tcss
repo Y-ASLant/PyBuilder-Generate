@@ -1,6 +1,6 @@
 /* 打包选项配置屏幕样式 */
 
-PackageOptionsScreen {
+PackageOptionsScreen, InstallerOptionsScreen {
     align: center middle;
     overflow: hidden;
 }
@@ -100,6 +100,7 @@ ToastRack {
 }
 
 .field-select {
+    width: 100%;
     height: 3;
 }
 
@@ -181,9 +182,13 @@ Tab.-active {
 
 .switches-row > .field-group,
 .switches-row > Select {
-    width: 50%;
+    width: 1fr;
     margin: 0 1 0 0;
     align-vertical: top;
+}
+
+.switches-row > .field-group:last-child {
+    margin-right: 0;
 }
 
 .inputs-row {
@@ -193,6 +198,10 @@ Tab.-active {
 }
 
 .inputs-row > .field-group {
-    width: 50%;
-    margin: 0 1 0 0;
+    width: 1fr;
+    margin: 0 1 1 0;
+}
+
+.inputs-row > .field-group:last-child {
+    margin-right: 0;
 }

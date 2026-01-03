@@ -139,6 +139,14 @@ def load_build_config(project_dir: Path) -> Dict[str, Any]:
                                 ]
                             else:
                                 config[key] = value
+                        else:
+                            # 不在默认配置中的字段（如 installer_* ），直接保存
+                            if value.lower() in ["true", "yes"]:
+                                config[key] = True
+                            elif value.lower() in ["false", "no"]:
+                                config[key] = False
+                            else:
+                                config[key] = value
     except Exception as e:
         print(f"加载构建配置失败: {e}")
 
@@ -305,6 +313,47 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             lines.append("exclude_packages:\n")
             for pkg in config["exclude_packages"]:
                 lines.append(f"  - {pkg}\n")
+            lines.append("\n")
+
+        # 安装包配置
+        installer_keys = [
+            ("installer_platform", "目标平台"),
+            ("installer_app_name", "应用名称"),
+            ("installer_version", "版本号"),
+            ("installer_publisher", "发布者"),
+            ("installer_exe_name", "可执行文件名"),
+            ("installer_source_dir", "源文件目录"),
+            ("installer_url", "应用网址"),
+            ("installer_output_dir", "输出目录"),
+            ("installer_icon", "图标文件"),
+            ("installer_install_dir", "安装目录"),
+            ("installer_license", "许可协议"),
+            ("installer_readme", "自述文件"),
+            ("installer_appid", "AppId"),
+            ("installer_privileges", "安装权限"),
+            ("installer_compression", "压缩方式"),
+            ("installer_path_scope", "PATH作用域"),
+        ]
+        
+        installer_bool_keys = [
+            ("installer_desktop_icon", "桌面快捷方式"),
+            ("installer_start_menu", "开始菜单"),
+            ("installer_add_path", "添加到PATH"),
+            ("installer_run_after", "安装后运行"),
+        ]
+        
+        # 检查是否有安装包配置
+        has_installer_config = any(config.get(key) for key, _ in installer_keys)
+        has_installer_bool = any(key in config for key, _ in installer_bool_keys)
+        
+        if has_installer_config or has_installer_bool:
+            lines.append("# 安装包配置\n")
+            for key, comment in installer_keys:
+                if config.get(key):
+                    lines.append(f"{key}: {config[key]}\n")
+            for key, comment in installer_bool_keys:
+                if key in config:
+                    lines.append(f"{key}: {str(config[key]).lower()}\n")
             lines.append("\n")
 
         path.write_text("".join(lines), encoding="utf-8")

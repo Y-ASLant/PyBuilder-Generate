@@ -38,7 +38,7 @@ class HelpScreen(Screen):
         """挂载后加载文档"""
         # 异步加载文档
         self.call_after_refresh(self._load_document)
-    
+
     async def _load_document(self) -> None:
         """异步加载文档内容"""
         viewer = self.query_one("#help-viewer", MarkdownViewer)

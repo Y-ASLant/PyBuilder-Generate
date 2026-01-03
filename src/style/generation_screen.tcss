@@ -1,6 +1,6 @@
 /* 脚本生成进度屏幕样式 */
 
-GenerationScreen {
+GenerationScreen, InstallerGenerationScreen {
     align: center middle;
 }
 

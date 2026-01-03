@@ -66,8 +66,11 @@ class PackageOptionsScreen(Screen):
             # 添加加载指示器和提示文本
             with Container(id="options-fields"):
                 from textual.widgets import LoadingIndicator
+
                 yield LoadingIndicator(id="loading-indicator")
-                yield Static("正在加载配置...", id="loading-text", classes="loading-hint")
+                yield Static(
+                    "正在加载配置...", id="loading-text", classes="loading-hint"
+                )
 
             # 按钮
             with Horizontal(id="button-container"):
@@ -87,7 +90,7 @@ class PackageOptionsScreen(Screen):
 
         # 使用异步加载，避免阻塞渲染
         self.call_after_refresh(self._load_and_create_fields)
-    
+
     def _load_and_create_fields(self) -> None:
         """异步加载配置并创建字段"""
         try:
@@ -110,35 +113,36 @@ class PackageOptionsScreen(Screen):
 
             # 根据构庻工具动态生成选项（开关值已在创庻时设置）
             self._create_options_fields()
-            
+
             # 初始化界面状态
             if self.config.get("build_tool") == "nuitka":
                 self._update_no_pyi_switch_state()
             elif self.config.get("build_tool") == "pyinstaller":
                 self._update_pyinstaller_input_states()
-                
+
         except Exception as e:
             # 错误处理：显示错误信息
             self._show_load_error(str(e))
-    
+
     def _show_load_error(self, error_msg: str) -> None:
         """显示加载错误"""
         options_container = self.query_one("#options-fields", Container)
-        
+
         # 移除加载器
         try:
             self.query_one("#loading-indicator").remove()
             self.query_one("#loading-text").remove()
         except Exception:
             pass
-        
+
         # 显示错误信息
         from textual.widgets import Static
+
         options_container.mount(
             Static(
                 f"加载配置失败\n\n{error_msg}\n\n请检查项目配置",
                 id="error-message",
-                classes="error-text"
+                classes="error-text",
             )
         )
 
@@ -243,7 +247,7 @@ class PackageOptionsScreen(Screen):
         """根据构建工具创建选项字段"""
         build_tool = self.config.get("build_tool", "nuitka")
         options_container = self.query_one("#options-fields", Container)
-        
+
         # 移除加载指示器和提示文本
         try:
             self.query_one("#loading-indicator").remove()
