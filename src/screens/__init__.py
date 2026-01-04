@@ -9,6 +9,9 @@ from src.screens.compile_config_screen import CompileConfigScreen
 from src.screens.package_options_screen import PackageOptionsScreen
 from src.screens.plugin_selector_screen import PluginSelectorScreen
 from src.screens.compiler_selector_screen import CompilerSelectorScreen
+from src.screens.installer_config_screen import InstallerConfigScreen
+from src.screens.installer_options_screen import InstallerOptionsScreen
+from src.screens.installer_generation_screen import InstallerGenerationScreen
 
 __all__ = [
     "WelcomeScreen",
@@ -18,4 +21,7 @@ __all__ = [
     "PackageOptionsScreen",
     "PluginSelectorScreen",
     "CompilerSelectorScreen",
+    "InstallerConfigScreen",
+    "InstallerOptionsScreen",
+    "InstallerGenerationScreen",
 ]

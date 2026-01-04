@@ -59,7 +59,7 @@ class CompilerSelectorScreen(Screen):
         """创建界面组件"""
         # 获取当前平台的编译器列表
         compilers = self.COMPILERS.get(self.os_type, self.COMPILERS["Linux"])
-        
+
         # 平台名称映射
         platform_names = {
             "Windows": "Windows",
@@ -67,22 +67,29 @@ class CompilerSelectorScreen(Screen):
             "Darwin": "macOS",
         }
         platform_name = platform_names.get(self.os_type, "Unknown")
-        
+
         with Container(id="compiler-container"):
             yield Static("选择 C 编译器", id="screen-title")
             yield Static(
                 f"选择用于 Nuitka 编译的 C 编译器 ({platform_name})",
-                id="compiler-description"
+                id="compiler-description",
             )
 
             # 查找初始索引
             initial_index = next(
-                (i for i, (_, value) in enumerate(compilers) if value == self.selected_compiler),
-                0
+                (
+                    i
+                    for i, (_, value) in enumerate(compilers)
+                    if value == self.selected_compiler
+                ),
+                0,
             )
 
             yield ListView(
-                *[ListItem(Label(name), id=f"{value}-item") for name, value in compilers],
+                *[
+                    ListItem(Label(name), id=f"{value}-item")
+                    for name, value in compilers
+                ],
                 id="compiler-list",
                 initial_index=initial_index,
             )

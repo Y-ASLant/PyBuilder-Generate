@@ -107,10 +107,6 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     if mode == "standalone" or mode == "app-dist":
         lines.append("        f'--output-folder-name={PROJECT_NAME}.dist',")
 
-    # 控制台选项
-    if not config.get("show_console", False):
-        lines.append("        '--disable-console',")
-
     # LTO 链接时优化
     lto = config.get("lto", "no")
     # 兼容旧的布尔值
@@ -220,6 +216,13 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     # 关闭初始命令列表
     lines.append("    ]")
     lines.append("")
+
+    # 控制台选项（仅Windows平台）
+    if not config.get("show_console", False):
+        lines.append("    # 禁用控制台窗口（仅Windows平台）")
+        lines.append("    if is_windows:")
+        lines.append("        cmd.append('--windows-console-mode=disable')")
+        lines.append("")
 
     # Windows特定参数（仅在Windows平台添加）
     if config.get("icon_file"):

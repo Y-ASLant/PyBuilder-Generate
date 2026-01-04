@@ -82,7 +82,9 @@ class PyBuildTUI(App):
             timeout = self.NOTIFICATION_TIMEOUT
 
         # 调用父类的 notify 方法
-        super().notify(message, title=title, severity=severity, timeout=timeout, markup=markup)
+        super().notify(
+            message, title=title, severity=severity, timeout=timeout, markup=markup
+        )
 
     # 主题切换
     def action_set_theme(self, theme: str) -> None:

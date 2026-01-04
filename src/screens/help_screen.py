@@ -6,7 +6,8 @@ from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import MarkdownViewer, LoadingIndicator, Static
-from textual.containers import Container
+from textual.containers import Container, Horizontal
+from textual.binding import Binding
 
 
 class HelpScreen(Screen):
@@ -17,13 +18,18 @@ class HelpScreen(Screen):
     HELP_PATH = Path(__file__).parent.parent.parent / "docs" / "Tutorial.md"
 
     BINDINGS = [
-        ("escape", "app.pop_screen", "返回"),
+        Binding("escape", "app.pop_screen", "返回", priority=True),
+        ("q", "app.pop_screen", "返回"),
     ]
 
     def compose(self) -> ComposeResult:
         """创建帮助文档界面组件"""
         # 添加容器，先显示加载动画
         with Container(id="help-container"):
+            # 顶部工具栏
+            with Horizontal(id="help-toolbar"):
+                yield Static("使用教程", id="help-title")
+                yield Static("按 ESC 或 Q 返回", id="help-hint")
             # 加载状态
             yield LoadingIndicator(id="help-loading")
             yield Static("正在加载帮助文档...", id="help-loading-text")
@@ -38,7 +44,7 @@ class HelpScreen(Screen):
         """挂载后加载文档"""
         # 异步加载文档
         self.call_after_refresh(self._load_document)
-    
+
     async def _load_document(self) -> None:
         """异步加载文档内容"""
         viewer = self.query_one("#help-viewer", MarkdownViewer)
