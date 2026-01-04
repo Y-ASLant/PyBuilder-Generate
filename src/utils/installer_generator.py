@@ -6,7 +6,15 @@
 import re
 import uuid
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+# 预编译正则表达式
+_SPLIT_PATTERN = re.compile(r"[,\s，]+")
+
+
+def _split_items(text: str) -> List[str]:
+    """分割字符串，支持空格、英文逗号、中文逗号"""
+    return [s.strip() for s in _SPLIT_PATTERN.split(text) if s.strip()]
 
 
 def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str:
@@ -195,23 +203,23 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         lines.append(
             'Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon'
         )
-    
+
     # 额外快捷方式
     if extra_shortcuts:
-        # 支持空格、逗号、中文逗号分隔
-        shortcuts = [s.strip() for s in re.split(r"[,\s，]+", extra_shortcuts) if s.strip()]
-        
-        for shortcut in shortcuts:
+        for shortcut in _split_items(extra_shortcuts):
             if ";" in shortcut:
                 name, exe = shortcut.split(";", 1)
-                name = name.strip()
-                exe = exe.strip()
+                name, exe = name.strip(), exe.strip()
                 if name and exe:
                     if start_menu:
-                        lines.append(f'Name: "{{group}}\\{name}"; Filename: "{{app}}\\{exe}"')
+                        lines.append(
+                            f'Name: "{{group}}\\{name}"; Filename: "{{app}}\\{exe}"'
+                        )
                     if desktop_icon:
-                        lines.append(f'Name: "{{autodesktop}}\\{name}"; Filename: "{{app}}\\{exe}"; Tasks: desktopicon')
-    
+                        lines.append(
+                            f'Name: "{{autodesktop}}\\{name}"; Filename: "{{app}}\\{exe}"; Tasks: desktopicon'
+                        )
+
     if not start_menu and not desktop_icon and not extra_shortcuts:
         lines.append("; 不创建快捷方式")
     lines.append("")
@@ -245,14 +253,10 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         # 文件关联
         if file_assoc:
             lines.append("; 文件类型关联")
-            # 解析文件扩展名列表
-            extensions = [
-                ext.strip().lstrip(".")
-                for ext in re.split(r"[,\s，]+", file_assoc)
-                if ext.strip()
-            ]
-            for ext in extensions:
-                ext_lower = ext.lower()
+            for ext in _split_items(file_assoc):
+                ext_lower = ext.lstrip(".").lower()
+                if not ext_lower:
+                    continue
                 lines.append(f"; .{ext_lower} 文件关联")
                 lines.append(
                     f'Root: HKA; Subkey: "Software\\Classes\\.{ext_lower}"; ValueType: string; ValueName: ""; ValueData: "{{#MyAppName}}.{ext_lower}"; Flags: uninsdeletevalue'
