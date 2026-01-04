@@ -210,7 +210,7 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     has_registry = add_path or file_assoc
     if has_registry:
         lines.append("[Registry]")
-        
+
         # PATH 环境变量
         if add_path:
             if path_scope == "system":
@@ -223,20 +223,32 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
                 lines.append(
                     'Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')'
                 )
-        
+
         # 文件关联
         if file_assoc:
             lines.append("; 文件类型关联")
             # 解析文件扩展名列表
-            extensions = [ext.strip().lstrip('.') for ext in re.split(r"[,\s，]+", file_assoc) if ext.strip()]
+            extensions = [
+                ext.strip().lstrip(".")
+                for ext in re.split(r"[,\s，]+", file_assoc)
+                if ext.strip()
+            ]
             for ext in extensions:
                 ext_lower = ext.lower()
-                lines.append(f'; .{ext_lower} 文件关联')
-                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\.{ext_lower}"; ValueType: string; ValueName: ""; ValueData: "{{#MyAppName}}.{ext_lower}"; Flags: uninsdeletevalue')
-                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}"; ValueType: string; ValueName: ""; ValueData: "{{#MyAppName}} {ext_lower.upper()} File"; Flags: uninsdeletekey')
-                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}\\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{{app}}\\{{#MyAppExeName}},0"')
-                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}\\shell\\open\\command"; ValueType: string; ValueName: ""; ValueData: """{{app}}\\{{#MyAppExeName}}"" ""%1"""')
-        
+                lines.append(f"; .{ext_lower} 文件关联")
+                lines.append(
+                    f'Root: HKA; Subkey: "Software\\Classes\\.{ext_lower}"; ValueType: string; ValueName: ""; ValueData: "{{#MyAppName}}.{ext_lower}"; Flags: uninsdeletevalue'
+                )
+                lines.append(
+                    f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}"; ValueType: string; ValueName: ""; ValueData: "{{#MyAppName}} {ext_lower.upper()} File"; Flags: uninsdeletekey'
+                )
+                lines.append(
+                    f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}\\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{{app}}\\{{#MyAppExeName}},0"'
+                )
+                lines.append(
+                    f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}\\shell\\open\\command"; ValueType: string; ValueName: ""; ValueData: """{{app}}\\{{#MyAppExeName}}"" ""%1"""'
+                )
+
         lines.append("")
 
     # [Code] 部分
@@ -250,10 +262,16 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         lines.append("  sUnInstPath: String;")
         lines.append("  sUnInstallString: String;")
         lines.append("begin")
-        lines.append("  sUnInstPath := ExpandConstant('Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{#emit SetupSetting(\"AppId\")}_is1');")
+        lines.append(
+            "  sUnInstPath := ExpandConstant('Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{#emit SetupSetting(\"AppId\")}_is1');"
+        )
         lines.append("  sUnInstallString := '';")
-        lines.append("  if not RegQueryStringValue(HKLM, sUnInstPath, 'UninstallString', sUnInstallString) then")
-        lines.append("    RegQueryStringValue(HKCU, sUnInstPath, 'UninstallString', sUnInstallString);")
+        lines.append(
+            "  if not RegQueryStringValue(HKLM, sUnInstPath, 'UninstallString', sUnInstallString) then"
+        )
+        lines.append(
+            "    RegQueryStringValue(HKCU, sUnInstPath, 'UninstallString', sUnInstallString);"
+        )
         lines.append("  Result := sUnInstallString;")
         lines.append("end;")
         lines.append("")
@@ -273,7 +291,9 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         lines.append("  sUnInstallString := GetUninstallString();")
         lines.append("  if sUnInstallString <> '' then begin")
         lines.append("    sUnInstallString := RemoveQuotes(sUnInstallString);")
-        lines.append("    if Exec(sUnInstallString, '/SILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_HIDE, ewWaitUntilTerminated, iResultCode) then")
+        lines.append(
+            "    if Exec(sUnInstallString, '/SILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_HIDE, ewWaitUntilTerminated, iResultCode) then"
+        )
         lines.append("      Result := 3")
         lines.append("    else")
         lines.append("      Result := 2;")

@@ -169,12 +169,16 @@ class InstallerOptionsScreen(Screen):
         # 第3行：开关选项 + 文件关联
         basic_row3 = Horizontal(
             self._create_switch_widget(
-                "uninstall-old-switch", "更新时卸载旧版本", True, "installer_uninstall_old"
+                "uninstall-old-switch",
+                "更新时卸载旧版本",
+                True,
+                "installer_uninstall_old",
             ),
             self._create_input_widget(
-                "file-assoc-input", "关联文件类型:",
+                "file-assoc-input",
+                "关联文件类型:",
                 "例如: .txt,.log,.cfg",
-                self.config.get("installer_file_assoc", "")
+                self.config.get("installer_file_assoc", ""),
             ),
             classes="switches-row",
         )
