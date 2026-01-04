@@ -3,6 +3,7 @@
 生成 Inno Setup (.iss) 和 nfpm 配置文件
 """
 
+import re
 import uuid
 from pathlib import Path
 from typing import Dict, Any
@@ -36,6 +37,7 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     uninstall_old = config.get("installer_uninstall_old", True)
     privileges = config.get("installer_privileges", "lowest")
     compression = config.get("installer_compression", "lzma2/ultra64")
+    file_assoc = config.get("installer_file_assoc", "").strip()
 
     # 可选文件
     license_file = config.get("installer_license", "")
@@ -204,19 +206,37 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         )
         lines.append("")
 
-    # [Registry] 部分 - PATH 环境变量
-    if add_path:
+    # [Registry] 部分 - PATH 环境变量和文件关联
+    has_registry = add_path or file_assoc
+    if has_registry:
         lines.append("[Registry]")
-        if path_scope == "system":
-            lines.append("; 添加到系统 PATH (需要管理员权限)")
-            lines.append(
-                'Root: HKLM; Subkey: "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')'
-            )
-        else:
-            lines.append("; 添加到用户 PATH")
-            lines.append(
-                'Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')'
-            )
+        
+        # PATH 环境变量
+        if add_path:
+            if path_scope == "system":
+                lines.append("; 添加到系统 PATH (需要管理员权限)")
+                lines.append(
+                    'Root: HKLM; Subkey: "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')'
+                )
+            else:
+                lines.append("; 添加到用户 PATH")
+                lines.append(
+                    'Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(\'{app}\')'
+                )
+        
+        # 文件关联
+        if file_assoc:
+            lines.append("; 文件类型关联")
+            # 解析文件扩展名列表
+            extensions = [ext.strip().lstrip('.') for ext in re.split(r"[,\s，]+", file_assoc) if ext.strip()]
+            for ext in extensions:
+                ext_lower = ext.lower()
+                lines.append(f'; .{ext_lower} 文件关联')
+                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\.{ext_lower}"; ValueType: string; ValueName: ""; ValueData: "{{#MyAppName}}.{ext_lower}"; Flags: uninsdeletevalue')
+                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}"; ValueType: string; ValueName: ""; ValueData: "{{#MyAppName}} {ext_lower.upper()} File"; Flags: uninsdeletekey')
+                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}\\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{{app}}\\{{#MyAppExeName}},0"')
+                lines.append(f'Root: HKA; Subkey: "Software\\Classes\\{{#MyAppName}}.{ext_lower}\\shell\\open\\command"; ValueType: string; ValueName: ""; ValueData: """{{app}}\\{{#MyAppExeName}}"" ""%1"""')
+        
         lines.append("")
 
     # [Code] 部分
