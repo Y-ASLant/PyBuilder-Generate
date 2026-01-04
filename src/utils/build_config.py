@@ -334,18 +334,18 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             ("installer_compression", "压缩方式"),
             ("installer_path_scope", "PATH作用域"),
         ]
-        
+
         installer_bool_keys = [
             ("installer_desktop_icon", "桌面快捷方式"),
             ("installer_start_menu", "开始菜单"),
             ("installer_add_path", "添加到PATH"),
             ("installer_run_after", "安装后运行"),
         ]
-        
+
         # 检查是否有安装包配置
         has_installer_config = any(config.get(key) for key, _ in installer_keys)
         has_installer_bool = any(key in config for key, _ in installer_bool_keys)
-        
+
         if has_installer_config or has_installer_bool:
             lines.append("# 安装包配置\n")
             for key, comment in installer_keys:

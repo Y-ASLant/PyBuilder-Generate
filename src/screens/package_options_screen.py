@@ -69,7 +69,9 @@ class PackageOptionsScreen(Screen):
 
                 yield LoadingIndicator(id="loading-indicator")
                 yield Static(
-                    "正在加载配置...", id="loading-text", classes="loading-hint"
+                    "正在加载配置选项，请稍候...",
+                    id="loading-text",
+                    classes="loading-hint",
                 )
 
             # 按钮

@@ -1,14 +1,43 @@
 /* 帮助文档屏幕样式 */
 
+HelpScreen {
+    layout: vertical;
+}
+
 #help-container {
     width: 100%;
     height: 100%;
-    align: center middle;
+    layout: vertical;
+}
+
+#help-toolbar {
+    width: 100%;
+    height: 3;
+    dock: top;
+    padding: 0 2;
+    border-bottom: solid $accent;
+    background: $panel;
+}
+
+#help-title {
+    width: 1fr;
+    height: 1;
+    content-align: left middle;
+    color: $primary;
+    text-style: bold;
+}
+
+#help-hint {
+    width: auto;
+    height: 1;
+    content-align: right middle;
+    color: $text-muted;
+    text-style: italic;
 }
 
 #help-viewer {
     width: 100%;
-    height: 100%;
+    height: 1fr;
 }
 
 /* 加载状态 */

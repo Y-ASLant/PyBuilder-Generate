@@ -90,7 +90,7 @@ class CompileConfigScreen(Screen):
                     with Vertical(classes="field-group"):
                         yield Label("输出目录:", classes="field-label")
                         yield Input(
-                            placeholder="例如: dist",
+                            placeholder="相对路径，如: dist 或 build",
                             id="output-dir-input",
                             classes="field-input",
                         )
@@ -98,7 +98,7 @@ class CompileConfigScreen(Screen):
                     with Vertical(classes="field-group"):
                         yield Label("入口文件:", classes="field-label")
                         yield Input(
-                            placeholder="例如: main.py",
+                            placeholder="相对于项目根目录，如: main.py",
                             id="entry-file-input",
                             classes="field-input",
                         )
@@ -106,7 +106,7 @@ class CompileConfigScreen(Screen):
                     with Vertical(classes="field-group"):
                         yield Label("图标文件 (可选):", classes="field-label")
                         yield Input(
-                            placeholder="例如: icon.ico",
+                            placeholder=".ico/.icns (Windows/macOS)，如: assets/icon.ico",
                             id="icon-file-input",
                             classes="field-input",
                         )

@@ -49,14 +49,21 @@ class InstallerOptionsScreen(Screen):
 
             with Container(id="options-fields"):
                 from textual.widgets import LoadingIndicator
+
                 yield LoadingIndicator(id="loading-indicator")
-                yield Static("正在加载配置...", id="loading-text", classes="loading-hint")
+                yield Static(
+                    "正在加载安装包选项，请稍候...",
+                    id="loading-text",
+                    classes="loading-hint",
+                )
 
             # 按钮
             with Horizontal(id="button-container"):
                 yield Button("返回", variant="warning", id="back-btn", flat=True)
                 yield Button("保存配置", variant="primary", id="save-btn", flat=True)
-                yield Button("生成脚本", variant="success", id="generate-btn", flat=True)
+                yield Button(
+                    "生成脚本", variant="success", id="generate-btn", flat=True
+                )
 
     def on_mount(self) -> None:
         """挂载时加载配置"""
@@ -85,10 +92,14 @@ class InstallerOptionsScreen(Screen):
         except Exception:
             pass
         options_container.mount(
-            Static(f"加载配置失败\n\n{error_msg}", id="error-message", classes="error-text")
+            Static(
+                f"加载配置失败\n\n{error_msg}", id="error-message", classes="error-text"
+            )
         )
 
-    def _create_switch_widget(self, switch_id: str, label: str, default_value: bool, config_key: str):
+    def _create_switch_widget(
+        self, switch_id: str, label: str, default_value: bool, config_key: str
+    ):
         """创建开关组件"""
         return Vertical(
             Horizontal(
@@ -103,7 +114,9 @@ class InstallerOptionsScreen(Screen):
             classes="field-group",
         )
 
-    def _create_input_widget(self, input_id: str, label: str, placeholder: str, value: str = ""):
+    def _create_input_widget(
+        self, input_id: str, label: str, placeholder: str, value: str = ""
+    ):
         """创建输入框组件"""
         return Vertical(
             Label(label, classes="field-label"),
@@ -131,7 +144,10 @@ class InstallerOptionsScreen(Screen):
         # 第1行：开关选项
         basic_row1 = Horizontal(
             self._create_switch_widget(
-                "desktop-icon-switch", "创建桌面快捷方式", True, "installer_desktop_icon"
+                "desktop-icon-switch",
+                "创建桌面快捷方式",
+                True,
+                "installer_desktop_icon",
             ),
             self._create_switch_widget(
                 "start-menu-switch", "创建开始菜单项", True, "installer_start_menu"
@@ -185,44 +201,51 @@ class InstallerOptionsScreen(Screen):
         )
 
         basic_content = Vertical(
-            basic_row1, basic_row2, basic_row3,
+            basic_row1,
+            basic_row2,
+            basic_row3,
             classes="basic-options-content",
         )
 
         # ===== 输出设置标签页 =====
         output_row1 = Horizontal(
             self._create_input_widget(
-                "output-dir-input", "安装包输出目录:",
+                "output-dir-input",
+                "安装包输出目录:",
                 "例如: dist/installer",
-                self.config.get("installer_output_dir", "dist/installer")
+                self.config.get("installer_output_dir", "dist/installer"),
             ),
             self._create_input_widget(
-                "icon-input", "图标文件:",
+                "icon-input",
+                "图标文件:",
                 "例如: assets/app.ico",
-                self.config.get("installer_icon", self.config.get("icon_file", ""))
+                self.config.get("installer_icon", self.config.get("icon_file", "")),
             ),
             classes="inputs-row",
         )
 
         output_row2 = Horizontal(
             self._create_input_widget(
-                "install-dir-input", "默认安装目录 (留空使用 Program Files):",
+                "install-dir-input",
+                "默认安装目录 (留空使用 Program Files):",
                 "例如: C:\\MyApp",
-                self.config.get("installer_install_dir", "")
+                self.config.get("installer_install_dir", ""),
             ),
             self._create_input_widget(
-                "license-input", "许可协议文件 (可选):",
+                "license-input",
+                "许可协议文件 (可选):",
                 "例如: LICENSE.txt",
-                self.config.get("installer_license", "")
+                self.config.get("installer_license", ""),
             ),
             classes="inputs-row",
         )
 
         output_row3 = Horizontal(
             self._create_input_widget(
-                "readme-input", "自述文件 (可选):",
+                "readme-input",
+                "自述文件 (可选):",
                 "例如: README.txt",
-                self.config.get("installer_readme", "")
+                self.config.get("installer_readme", ""),
             ),
             Vertical(
                 Label("压缩方式:", classes="field-label"),
@@ -262,7 +285,10 @@ class InstallerOptionsScreen(Screen):
         )
 
         output_content = Vertical(
-            output_row1, output_row2, output_row3, output_row4,
+            output_row1,
+            output_row2,
+            output_row3,
+            output_row4,
             classes="basic-options-content",
         )
 
@@ -278,21 +304,45 @@ class InstallerOptionsScreen(Screen):
         existing_config = load_build_config(self.project_dir)
 
         # 基本选项
-        existing_config["installer_desktop_icon"] = self.query_one("#desktop-icon-switch", Switch).value
-        existing_config["installer_start_menu"] = self.query_one("#start-menu-switch", Switch).value
-        existing_config["installer_add_path"] = self.query_one("#add-path-switch", Switch).value
-        existing_config["installer_run_after"] = self.query_one("#run-after-switch", Switch).value
-        existing_config["installer_privileges"] = self.query_one("#privileges-select", Select).value
-        existing_config["installer_path_scope"] = self.query_one("#path-scope-select", Select).value
+        existing_config["installer_desktop_icon"] = self.query_one(
+            "#desktop-icon-switch", Switch
+        ).value
+        existing_config["installer_start_menu"] = self.query_one(
+            "#start-menu-switch", Switch
+        ).value
+        existing_config["installer_add_path"] = self.query_one(
+            "#add-path-switch", Switch
+        ).value
+        existing_config["installer_run_after"] = self.query_one(
+            "#run-after-switch", Switch
+        ).value
+        existing_config["installer_privileges"] = self.query_one(
+            "#privileges-select", Select
+        ).value
+        existing_config["installer_path_scope"] = self.query_one(
+            "#path-scope-select", Select
+        ).value
 
         # 输出设置
-        existing_config["installer_output_dir"] = self.query_one("#output-dir-input", Input).value.strip()
-        existing_config["installer_icon"] = self.query_one("#icon-input", Input).value.strip()
-        existing_config["installer_install_dir"] = self.query_one("#install-dir-input", Input).value.strip()
-        existing_config["installer_compression"] = self.query_one("#compression-select", Select).value
-        existing_config["installer_license"] = self.query_one("#license-input", Input).value.strip()
-        existing_config["installer_readme"] = self.query_one("#readme-input", Input).value.strip()
-        
+        existing_config["installer_output_dir"] = self.query_one(
+            "#output-dir-input", Input
+        ).value.strip()
+        existing_config["installer_icon"] = self.query_one(
+            "#icon-input", Input
+        ).value.strip()
+        existing_config["installer_install_dir"] = self.query_one(
+            "#install-dir-input", Input
+        ).value.strip()
+        existing_config["installer_compression"] = self.query_one(
+            "#compression-select", Select
+        ).value
+        existing_config["installer_license"] = self.query_one(
+            "#license-input", Input
+        ).value.strip()
+        existing_config["installer_readme"] = self.query_one(
+            "#readme-input", Input
+        ).value.strip()
+
         # AppId：保存时去掉花括号，只有用户输入了才更新
         appid_input = self.query_one("#appid-input", Input).value.strip().strip("{}")
         if appid_input:

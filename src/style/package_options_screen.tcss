@@ -83,7 +83,8 @@ ToastRack {
 .field-label {
     color: $text;
     height: 1;
-    margin-bottom: 0;
+    margin: 0;
+    padding: 0;
 }
 
 .field-label-inline {
@@ -102,6 +103,7 @@ ToastRack {
 .field-select {
     width: 100%;
     height: 3;
+    margin: 0;
 }
 
 /* LTO 下拉选择特殊样式 */
@@ -207,4 +209,22 @@ Tab.-active {
 
 .inputs-row > .appid-full-width {
     width: 100%;
+}
+
+/* 加载提示样式 */
+#loading-indicator {
+    margin: 1 0;
+}
+
+.loading-hint {
+    text-align: center;
+    color: $text-muted;
+    text-style: italic;
+    margin: 1 0;
+}
+
+.error-text {
+    text-align: center;
+    color: $error;
+    margin: 1 0;
 }
