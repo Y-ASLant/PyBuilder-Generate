@@ -340,6 +340,7 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             ("installer_start_menu", "开始菜单"),
             ("installer_add_path", "添加到PATH"),
             ("installer_run_after", "安装后运行"),
+            ("installer_uninstall_old", "更新时卸载旧版本"),
         ]
 
         # 检查是否有安装包配置

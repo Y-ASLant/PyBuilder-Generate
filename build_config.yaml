@@ -35,8 +35,8 @@ installer_app_name: PyBuilder
 installer_version: 1.0.0
 installer_publisher: ASLant
 installer_exe_name: PyBuilder.exe
-installer_source_dir: build
-installer_output_dir: dist/installer
+installer_source_dir: build\PyBuilder
+installer_output_dir: dist
 installer_icon: assets/app.ico
 installer_appid: 3570A6C9-D68D-41D0-A6A0-4C3E3E4F8ECF
 installer_privileges: dialog
@@ -46,4 +46,5 @@ installer_desktop_icon: true
 installer_start_menu: true
 installer_add_path: false
 installer_run_after: true
+installer_uninstall_old: true
 

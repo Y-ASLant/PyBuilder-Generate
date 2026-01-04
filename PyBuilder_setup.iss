@@ -21,7 +21,7 @@ DefaultGroupName={#MyAppName}
 CreateAppDir=yes
 
 ; 输出设置
-OutputDir=dist/installer
+OutputDir=dist
 OutputBaseFilename={#MyAppName}_V{#MyAppVersion}_Setup
 SetupIconFile=assets/app.ico
 
@@ -60,7 +60,7 @@ Name: "chinesesimp"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "build\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "build\PyBuilder\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -71,6 +71,53 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent shellexec
 
 [Code]
+// 获取旧版本卸载程序路径
+function GetUninstallString(): String;
+var
+  sUnInstPath: String;
+  sUnInstallString: String;
+begin
+  sUnInstPath := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\{#emit SetupSetting("AppId")}_is1');
+  sUnInstallString := '';
+  if not RegQueryStringValue(HKLM, sUnInstPath, 'UninstallString', sUnInstallString) then
+    RegQueryStringValue(HKCU, sUnInstPath, 'UninstallString', sUnInstallString);
+  Result := sUnInstallString;
+end;
+
+// 检查是否已安装旧版本
+function IsUpgrade(): Boolean;
+begin
+  Result := (GetUninstallString() <> '');
+end;
+
+// 卸载旧版本
+function UnInstallOldVersion(): Integer;
+var
+  sUnInstallString: String;
+  iResultCode: Integer;
+begin
+  Result := 0;
+  sUnInstallString := GetUninstallString();
+  if sUnInstallString <> '' then begin
+    sUnInstallString := RemoveQuotes(sUnInstallString);
+    if Exec(sUnInstallString, '/SILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_HIDE, ewWaitUntilTerminated, iResultCode) then
+      Result := 3
+    else
+      Result := 2;
+  end else
+    Result := 1;
+end;
+
+// 安装前检查并卸载旧版本
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if (CurStep = ssInstall) then
+  begin
+    if (IsUpgrade()) then
+      UnInstallOldVersion();
+  end;
+end;
+
 // 无额外代码
 
 [UninstallDelete]

@@ -166,8 +166,16 @@ class InstallerOptionsScreen(Screen):
             classes="switches-row",
         )
 
-        # 第3行：下拉选择
+        # 第3行：开关选项
         basic_row3 = Horizontal(
+            self._create_switch_widget(
+                "uninstall-old-switch", "更新时卸载旧版本", True, "installer_uninstall_old"
+            ),
+            classes="switches-row",
+        )
+
+        # 第4行：下拉选择
+        basic_row4 = Horizontal(
             Vertical(
                 Label("安装权限:", classes="field-label"),
                 Select(
@@ -204,6 +212,7 @@ class InstallerOptionsScreen(Screen):
             basic_row1,
             basic_row2,
             basic_row3,
+            basic_row4,
             classes="basic-options-content",
         )
 
@@ -315,6 +324,9 @@ class InstallerOptionsScreen(Screen):
         ).value
         existing_config["installer_run_after"] = self.query_one(
             "#run-after-switch", Switch
+        ).value
+        existing_config["installer_uninstall_old"] = self.query_one(
+            "#uninstall-old-switch", Switch
         ).value
         existing_config["installer_privileges"] = self.query_one(
             "#privileges-select", Select
