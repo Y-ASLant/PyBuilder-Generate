@@ -1,6 +1,6 @@
 /* 编译配置屏幕样式 */
 
-CompileConfigScreen {
+CompileConfigScreen, InstallerConfigScreen {
     align: center middle;
     overflow: hidden;
 }
