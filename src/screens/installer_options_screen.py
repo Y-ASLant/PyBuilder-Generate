@@ -217,11 +217,23 @@ class InstallerOptionsScreen(Screen):
             classes="inputs-row",
         )
 
+        # 第5行：额外快捷方式
+        basic_row5 = Horizontal(
+            self._create_input_widget(
+                "extra-shortcuts-input",
+                "额外快捷方式 (名称;exe文件):",
+                "例如: Word;word.exe Excel;excel.exe",
+                self.config.get("installer_extra_shortcuts", ""),
+            ),
+            classes="inputs-row",
+        )
+
         basic_content = Vertical(
             basic_row1,
             basic_row2,
             basic_row3,
             basic_row4,
+            basic_row5,
             classes="basic-options-content",
         )
 
@@ -346,6 +358,9 @@ class InstallerOptionsScreen(Screen):
         existing_config["installer_path_scope"] = self.query_one(
             "#path-scope-select", Select
         ).value
+        existing_config["installer_extra_shortcuts"] = self.query_one(
+            "#extra-shortcuts-input", Input
+        ).value.strip()
 
         # 输出设置
         existing_config["installer_output_dir"] = self.query_one(

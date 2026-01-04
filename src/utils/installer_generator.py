@@ -38,6 +38,7 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     privileges = config.get("installer_privileges", "lowest")
     compression = config.get("installer_compression", "lzma2/ultra64")
     file_assoc = config.get("installer_file_assoc", "").strip()
+    extra_shortcuts = config.get("installer_extra_shortcuts", "").strip()
 
     # 可选文件
     license_file = config.get("installer_license", "")
@@ -194,7 +195,24 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
         lines.append(
             'Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon'
         )
-    if not start_menu and not desktop_icon:
+    
+    # 额外快捷方式
+    if extra_shortcuts:
+        # 支持空格、逗号、中文逗号分隔
+        shortcuts = [s.strip() for s in re.split(r"[,\s，]+", extra_shortcuts) if s.strip()]
+        
+        for shortcut in shortcuts:
+            if ";" in shortcut:
+                name, exe = shortcut.split(";", 1)
+                name = name.strip()
+                exe = exe.strip()
+                if name and exe:
+                    if start_menu:
+                        lines.append(f'Name: "{{group}}\\{name}"; Filename: "{{app}}\\{exe}"')
+                    if desktop_icon:
+                        lines.append(f'Name: "{{autodesktop}}\\{name}"; Filename: "{{app}}\\{exe}"; Tasks: desktopicon')
+    
+    if not start_menu and not desktop_icon and not extra_shortcuts:
         lines.append("; 不创建快捷方式")
     lines.append("")
 
