@@ -2,6 +2,7 @@
 主应用类
 """
 
+import asyncio
 from textual.app import App
 from textual.binding import Binding
 from textual import events
@@ -90,11 +91,12 @@ class PyBuildTUI(App):
     def action_set_theme(self, theme: str) -> None:
         """统一主题切换动作"""
         self.theme = theme
-        self._save_theme_to_config(theme)
         try:
             self.notify(f"已切换主题: {theme}", severity="information")
         except Exception:
             pass
+        # 异步保存配置，不阻塞 UI
+        asyncio.create_task(self._async_save_theme_to_config(theme))
 
     def on_key(self, event: events.Key) -> None:
         """全局按键处理：F1..F8 切换主题"""
@@ -107,7 +109,12 @@ class PyBuildTUI(App):
         """空动作：用于屏蔽默认 Ctrl+P 行为"""
         return
 
-    def _save_theme_to_config(self, theme: str) -> None:
-        """将主题写入配置文件"""
-        self.config["theme"] = theme
-        save_config(self.config)
+    async def _async_save_theme_to_config(self, theme: str) -> None:
+        """异步将主题写入配置文件"""
+        try:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None, lambda: save_config({**self.config, "theme": theme})
+            )
+        except Exception:
+            pass

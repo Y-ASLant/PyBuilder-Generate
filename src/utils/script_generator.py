@@ -5,7 +5,16 @@
 
 import re
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+
+# 预编译正则表达式
+_SPLIT_PATTERN = re.compile(r"[,\s，]+")
+
+
+def _split_items(text: str) -> List[str]:
+    """分割字符串，支持空格、英文逗号、中文逗号"""
+    return [s.strip() for s in _SPLIT_PATTERN.split(text) if s.strip()]
 
 
 # 颜色类定义（用于生成的脚本）
@@ -21,59 +30,152 @@ class Color:
 """
 
 
-def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
-    """生成 Nuitka 构建脚本"""
-    lines = []
+def _generate_script_header(config: Dict[str, Any], tool_name: str) -> List[str]:
+    """生成脚本头部（公共部分）"""
+    project_name = config.get("project_name", "MyApp")
+    version = config.get("version", "1.0.0")
 
-    # 脚本头部
-    lines.append("# -*- coding: utf-8 -*-")
-    lines.append('"""')
-    lines.append(f"{config['project_name']} - Nuitka 构建脚本")
-    lines.append(f"版本: {config['version']}")
-    lines.append('"""')
-    lines.append("")
-    lines.append("import sys")
-    lines.append("import os")
-    lines.append("import subprocess")
-    lines.append("import shutil")
-    lines.append("import time")
-    lines.append("import platform")
-    lines.append("")
-    lines.append("")
-    lines.append(COLOR_CLASS_CODE)
-    lines.append("")
+    lines = [
+        "# -*- coding: utf-8 -*-",
+        '"""',
+        f"{project_name} - {tool_name} 构建脚本",
+        f"版本: {version}",
+        '"""',
+        "",
+        "import sys",
+        "import os",
+        "import subprocess",
+        "import shutil",
+        "import time",
+        "import platform",
+        "",
+        "",
+        COLOR_CLASS_CODE,
+        "",
+    ]
+    return lines
 
-    # 配置部分
-    lines.append("# 构建配置")
-    lines.append(f"PROJECT_NAME = '{config['project_name']}'")
-    lines.append(f"VERSION = '{config['version']}'")
-    lines.append(f"ENTRY_FILE = '{config['entry_file']}'")
+
+def _generate_config_section(
+    config: Dict[str, Any], extra_vars: List[str] = None
+) -> List[str]:
+    """生成配置常量部分"""
+    lines = [
+        "# 构建配置",
+        f"PROJECT_NAME = '{config.get('project_name', 'MyApp')}'",
+        f"VERSION = '{config.get('version', '1.0.0')}'",
+        f"ENTRY_FILE = '{config.get('entry_file', 'main.py')}'",
+    ]
     if config.get("company_name"):
         lines.append(f"COMPANY_NAME = '{config['company_name']}'")
     if config.get("icon_file"):
         lines.append(f"ICON_FILE = '{config['icon_file']}'")
-    lines.append(f"OUTPUT_DIR = '{config['output_dir']}'")
+    if extra_vars:
+        lines.extend(extra_vars)
+    lines.append(f"OUTPUT_DIR = '{config.get('output_dir', 'dist')}'")
     lines.append("")
+    return lines
 
-    # 构建函数
-    lines.append("def build():")
-    lines.append('    """执行 Nuitka 构建"""')
-    lines.append("    # 获取平台信息")
-    lines.append("    os_type = platform.system()")
-    lines.append("    is_windows = os_type == 'Windows'")
-    lines.append("    is_macos = os_type == 'Darwin'")
-    lines.append("    is_linux = os_type == 'Linux'")
-    lines.append("    ")
-    lines.append("    # 获取终端宽度")
-    lines.append("    width = shutil.get_terminal_size().columns")
-    lines.append("    separator = '-' * width")
-    lines.append("    start_time = time.time()")
-    lines.append("")
-    lines.append(
-        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION} on {os_type}{Color.RESET}')"
+
+def _generate_build_function_header(tool_name: str) -> List[str]:
+    """生成构建函数开头部分"""
+    return [
+        "def build():",
+        f'    """执行 {tool_name} 构建"""',
+        "    # 获取平台信息",
+        "    os_type = platform.system()",
+        "    is_windows = os_type == 'Windows'",
+        "    is_macos = os_type == 'Darwin'",
+        "    is_linux = os_type == 'Linux'",
+        "    ",
+        "    # 获取终端宽度",
+        "    width = shutil.get_terminal_size().columns",
+        "    separator = '-' * width",
+        "    start_time = time.time()",
+        "",
+        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION} on {os_type}{Color.RESET}')",
+        "    print(separator)",
+        "",
+    ]
+
+
+def _generate_build_execution() -> List[str]:
+    """生成构建执行部分（命令打印）"""
+    return [
+        "    # 执行构建",
+        "    print(f'{Color.GRAY}Command:{Color.RESET}')",
+        "    print(f'{Color.GRAY}' + ' '.join(cmd) + f'{Color.RESET}')",
+        "    print(separator)",
+        "    print(f'{Color.YELLOW}Building, please wait...{Color.RESET}')",
+        "    print()",
+        "",
+    ]
+
+
+def _generate_build_result(cleanup_code: List[str] = None) -> List[str]:
+    """生成构建结果处理部分"""
+    lines = [
+        "    try:",
+        "        subprocess.run(cmd, check=True)",
+        "        print(separator)",
+        "        elapsed_time = time.time() - start_time",
+        "        minutes = int(elapsed_time // 60)",
+        "        seconds = int(elapsed_time % 60)",
+        "        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')",
+    ]
+    if cleanup_code:
+        lines.extend(cleanup_code)
+    lines.extend(
+        [
+            "        abs_output = os.path.abspath(OUTPUT_DIR)",
+            "        print(f'{Color.GREEN}Output: {abs_output}{Color.RESET}')",
+            "        if minutes > 0:",
+            "            print(f'{Color.CYAN}Build time: {minutes}m {seconds}s{Color.RESET}')",
+            "        else:",
+            "            print(f'{Color.CYAN}Build time: {seconds}s{Color.RESET}')",
+            "        return 0",
+            "    except subprocess.CalledProcessError as e:",
+            "        print(separator)",
+            "        print(f'{Color.RED}{Color.BOLD}Build failed: {Color.RESET}{Color.RED}{e}{Color.RESET}')",
+            "        return 1",
+            "    except Exception as e:",
+            "        print(separator)",
+            "        print(f'{Color.RED}{Color.BOLD}Error: {Color.RESET}{Color.RED}{e}{Color.RESET}')",
+            "        return 1",
+            "",
+        ]
     )
-    lines.append("    print(separator)")
-    lines.append("")
+    return lines
+
+
+def _generate_main_block() -> List[str]:
+    """生成主函数入口"""
+    return [
+        "",
+        "if __name__ == '__main__':",
+        "    sys.exit(build())",
+        "",
+    ]
+
+
+def _generate_path_code(path_str: str) -> str:
+    """生成 os.path.join 代码字符串"""
+    parts = [p for p in path_str.replace("\\", "/").split("/") if p]
+    return (
+        f"os.path.join({', '.join(repr(p) for p in parts)})"
+        if len(parts) > 1
+        else repr(parts[0] if parts else path_str)
+    )
+
+
+def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
+    """生成 Nuitka 构建脚本"""
+    lines = []
+
+    # 使用公共模板生成头部
+    lines.extend(_generate_script_header(config, "Nuitka"))
+    lines.extend(_generate_config_section(config))
+    lines.extend(_generate_build_function_header("Nuitka"))
 
     # 构建命令
     lines.append("    # 构建 Nuitka 命令")
@@ -155,39 +257,20 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     # 包含包
     include_packages = config.get("include_packages", "")
     if include_packages:
-        packages = [
-            p.strip() for p in re.split(r"[,\s，]+", include_packages) if p.strip()
-        ]
-        for package in packages:
+        for package in _split_items(include_packages):
             lines.append(f"        '--include-package={package}',")
 
     # 包含模块
     include_modules = config.get("include_modules", "")
     if include_modules:
-        modules = [
-            m.strip() for m in re.split(r"[,\s，]+", include_modules) if m.strip()
-        ]
-        for module in modules:
+        for module in _split_items(include_modules):
             lines.append(f"        '--include-module={module}',")
 
     # 排除导入
     nofollow_imports = config.get("nofollow_imports", "")
     if nofollow_imports:
-        modules = [
-            m.strip() for m in re.split(r"[,\s，]+", nofollow_imports) if m.strip()
-        ]
-        for module in modules:
+        for module in _split_items(nofollow_imports):
             lines.append(f"        '--nofollow-import-to={module}',")
-
-    # 辅助函数：生成路径代码
-    def generate_path_code(path_str: str) -> str:
-        """生成 os.path.join 代码字符串"""
-        parts = [p for p in path_str.replace("\\", "/").split("/") if p]
-        return (
-            f"os.path.join({', '.join(repr(p) for p in parts)})"
-            if len(parts) > 1
-            else repr(parts[0] if parts else path_str)
-        )
 
     # 数据文件和数据目录（统一处理）
     data_params = [
@@ -202,8 +285,8 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
             for data_entry in entries:
                 if ";" in data_entry:
                     src, dest = data_entry.split(";", 1)
-                    src_code = generate_path_code(src)
-                    dest_code = generate_path_code(dest)
+                    src_code = _generate_path_code(src)
+                    dest_code = _generate_path_code(dest)
                     lines.append(f"        f'{flag}={{{src_code}}}={{{dest_code}}}',")
 
     # 插件
@@ -278,53 +361,10 @@ def generate_nuitka_script(config: Dict[str, Any], project_dir: Path) -> str:
     lines.append("    cmd.append(ENTRY_FILE)")
     lines.append("")
 
-    # 执行构建
-    lines.append("    # 执行构建")
-    lines.append("    print(f'{Color.GRAY}Command:{Color.RESET}')")
-    lines.append("    print(f'{Color.GRAY}' + ' '.join(cmd) + f'{Color.RESET}')")
-    lines.append("    print(separator)")
-    lines.append("    print(f'{Color.YELLOW}Building, please wait...{Color.RESET}')")
-    lines.append("    print()")
-    lines.append("")
-    lines.append("    try:")
-    lines.append("        subprocess.run(cmd, check=True)")
-    lines.append("        print(separator)")
-    lines.append("        elapsed_time = time.time() - start_time")
-    lines.append("        minutes = int(elapsed_time // 60)")
-    lines.append("        seconds = int(elapsed_time % 60)")
-    lines.append(
-        "        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')"
-    )
-    lines.append("        abs_output = os.path.abspath(OUTPUT_DIR)")
-    lines.append("        print(f'{Color.GREEN}Output: {abs_output}{Color.RESET}')")
-    lines.append("        if minutes > 0:")
-    lines.append(
-        "            print(f'{Color.CYAN}Build time: {minutes}m {seconds}s{Color.RESET}')"
-    )
-    lines.append("        else:")
-    lines.append(
-        "            print(f'{Color.CYAN}Build time: {seconds}s{Color.RESET}')"
-    )
-    lines.append("        return 0")
-    lines.append("    except subprocess.CalledProcessError as e:")
-    lines.append("        print(separator)")
-    lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}Build failed: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
-    )
-    lines.append("        return 1")
-    lines.append("    except Exception as e:")
-    lines.append("        print(separator)")
-    lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}Error: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
-    )
-    lines.append("        return 1")
-    lines.append("")
-
-    # 主函数
-    lines.append("")
-    lines.append("if __name__ == '__main__':")
-    lines.append("    sys.exit(build())")
-    lines.append("")
+    # 使用公共模板生成执行和结果部分
+    lines.extend(_generate_build_execution())
+    lines.extend(_generate_build_result())
+    lines.extend(_generate_main_block())
 
     return "\n".join(lines)
 
@@ -333,57 +373,15 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     """生成 PyInstaller 构建脚本"""
     lines = []
 
-    # 脚本头部
-    lines.append("# -*- coding: utf-8 -*-")
-    lines.append('"""')
-    lines.append(f"{config['project_name']} - PyInstaller 构建脚本")
-    lines.append(f"版本: {config['version']}")
-    lines.append('"""')
-    lines.append("")
-    lines.append("import sys")
-    lines.append("import os")
-    lines.append("import subprocess")
-    lines.append("import shutil")
-    lines.append("import time")
-    lines.append("import platform")
-    lines.append("")
-    lines.append("")
-    lines.append(COLOR_CLASS_CODE)
-    lines.append("")
+    # 使用公共模板生成头部
+    lines.extend(_generate_script_header(config, "PyInstaller"))
 
-    # 配置部分
-    lines.append("# 构建配置")
-    lines.append(f"PROJECT_NAME = '{config['project_name']}'")
-    lines.append(f"VERSION = '{config['version']}'")
-    if config.get("company_name"):
-        lines.append(f"COMPANY_NAME = '{config['company_name']}'")
-    lines.append(f"ENTRY_FILE = '{config['entry_file']}'")
-    if config.get("icon_file"):
-        lines.append(f"ICON_FILE = '{config['icon_file']}'")
+    # PyInstaller 特有的额外变量
+    extra_vars = []
     if config.get("splash_image"):
-        lines.append(f"SPLASH_IMAGE = '{config['splash_image']}'")
-    lines.append(f"OUTPUT_DIR = '{config['output_dir']}'")
-    lines.append("")
-
-    # 构建函数
-    lines.append("def build():")
-    lines.append('    """执行 PyInstaller 构建"""')
-    lines.append("    # 获取平台信息")
-    lines.append("    os_type = platform.system()")
-    lines.append("    is_windows = os_type == 'Windows'")
-    lines.append("    is_macos = os_type == 'Darwin'")
-    lines.append("    is_linux = os_type == 'Linux'")
-    lines.append("")
-    lines.append("    # 获取终端宽度")
-    lines.append("    width = shutil.get_terminal_size().columns")
-    lines.append("    separator = '-' * width")
-    lines.append("    start_time = time.time()")
-    lines.append("")
-    lines.append(
-        "    print(f'{Color.CYAN}{Color.BOLD}Building {PROJECT_NAME} v{VERSION} on {os_type}{Color.RESET}')"
-    )
-    lines.append("    print(separator)")
-    lines.append("")
+        extra_vars.append(f"SPLASH_IMAGE = '{config['splash_image']}'")
+    lines.extend(_generate_config_section(config, extra_vars if extra_vars else None))
+    lines.extend(_generate_build_function_header("PyInstaller"))
 
     # 添加数据文件分隔符检测（如果需要）
     add_data = config.get("add_data", "")
@@ -500,8 +498,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     hidden_imports = config.get("hidden_imports", "")
     if hidden_imports:
         lines.append("    # 隐藏导入")
-        modules = [m.strip() for m in re.split(r"[,\s]+", hidden_imports) if m.strip()]
-        for module in modules:
+        for module in _split_items(hidden_imports):
             lines.append(f"    cmd.append('--hidden-import={module}')")
         lines.append("")
 
@@ -509,8 +506,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     exclude_modules = config.get("exclude_modules", "")
     if exclude_modules:
         lines.append("    # 排除模块")
-        modules = [m.strip() for m in re.split(r"[,\s]+", exclude_modules) if m.strip()]
-        for module in modules:
+        for module in _split_items(exclude_modules):
             lines.append(f"    cmd.append('--exclude-module={module}')")
         lines.append("")
 
@@ -518,10 +514,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     collect_submodules = config.get("collect_submodules", "")
     if collect_submodules:
         lines.append("    # 收集子模块")
-        packages = [
-            p.strip() for p in re.split(r"[,\s]+", collect_submodules) if p.strip()
-        ]
-        for package in packages:
+        for package in _split_items(collect_submodules):
             lines.append(f"    cmd.append('--collect-submodules={package}')")
         lines.append("")
 
@@ -529,8 +522,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     collect_data = config.get("collect_data", "")
     if collect_data:
         lines.append("    # 收集数据文件")
-        packages = [p.strip() for p in re.split(r"[,\s]+", collect_data) if p.strip()]
-        for package in packages:
+        for package in _split_items(collect_data):
             lines.append(f"    cmd.append('--collect-data={package}')")
         lines.append("")
 
@@ -538,10 +530,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     collect_binaries = config.get("collect_binaries", "")
     if collect_binaries:
         lines.append("    # 收集二进制文件")
-        packages = [
-            p.strip() for p in re.split(r"[,\s]+", collect_binaries) if p.strip()
-        ]
-        for package in packages:
+        for package in _split_items(collect_binaries):
             lines.append(f"    cmd.append('--collect-binaries={package}')")
         lines.append("")
 
@@ -549,8 +538,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     collect_all = config.get("collect_all", "")
     if collect_all:
         lines.append("    # 收集所有")
-        packages = [p.strip() for p in re.split(r"[,\s]+", collect_all) if p.strip()]
-        for package in packages:
+        for package in _split_items(collect_all):
             lines.append(f"    cmd.append('--collect-all={package}')")
         lines.append("")
 
@@ -561,22 +549,8 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
         for data_entry in entries:
             if ";" in data_entry:
                 src, dest = data_entry.split(";", 1)
-                # 将路径分割为部分，用于 os.path.join
-                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
-                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
-
-                # 生成 os.path.join 调用
-                src_code = (
-                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
-                    if len(src_parts) > 1
-                    else repr(src_parts[0] if src_parts else src)
-                )
-                dest_code = (
-                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
-                    if len(dest_parts) > 1
-                    else repr(dest_parts[0] if dest_parts else dest)
-                )
-
+                src_code = _generate_path_code(src)
+                dest_code = _generate_path_code(dest)
                 lines.append(
                     f"    cmd.append(f'--add-data={{{src_code}}}{{data_separator}}{{{dest_code}}}')"
                 )
@@ -592,22 +566,8 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
         for binary_entry in entries:
             if ";" in binary_entry:
                 src, dest = binary_entry.split(";", 1)
-                # 将路径分割为部分，用于 os.path.join
-                src_parts = [p for p in src.replace("\\", "/").split("/") if p]
-                dest_parts = [p for p in dest.replace("\\", "/").split("/") if p]
-
-                # 生成 os.path.join 调用
-                src_code = (
-                    f"os.path.join({', '.join(repr(p) for p in src_parts)})"
-                    if len(src_parts) > 1
-                    else repr(src_parts[0] if src_parts else src)
-                )
-                dest_code = (
-                    f"os.path.join({', '.join(repr(p) for p in dest_parts)})"
-                    if len(dest_parts) > 1
-                    else repr(dest_parts[0] if dest_parts else dest)
-                )
-
+                src_code = _generate_path_code(src)
+                dest_code = _generate_path_code(dest)
                 lines.append(
                     f"    cmd.append(f'--add-binary={{{src_code}}}{{data_separator}}{{{dest_code}}}')"
                 )
@@ -620,58 +580,19 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.append("    cmd.append(ENTRY_FILE)")
     lines.append("")
 
-    # 执行构建
-    lines.append("    # 执行构建")
-    lines.append("    print(f'{Color.GRAY}Command:{Color.RESET}')")
-    lines.append("    print(f'{Color.GRAY}' + ' '.join(cmd) + f'{Color.RESET}')")
-    lines.append("    print(separator)")
-    lines.append("    print(f'{Color.YELLOW}Building, please wait...{Color.RESET}')")
-    lines.append("    print()")
-    lines.append("")
-    lines.append("    try:")
-    lines.append("        subprocess.run(cmd, check=True)")
-    lines.append("        print(separator)")
-    lines.append("        elapsed_time = time.time() - start_time")
-    lines.append("        minutes = int(elapsed_time // 60)")
-    lines.append("        seconds = int(elapsed_time % 60)")
-    lines.append(
-        "        print(f'{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}')"
-    )
-    lines.append("        # 清理 .spec 文件")
-    lines.append("        spec_file = f'{PROJECT_NAME}.spec'")
-    lines.append("        if os.path.exists(spec_file):")
-    lines.append("            os.remove(spec_file)")
-    lines.append("            print(f'{Color.GRAY}Cleaned: {spec_file}{Color.RESET}')")
-    lines.append("        abs_output = os.path.abspath(OUTPUT_DIR)")
-    lines.append("        print(f'{Color.GREEN}Output: {abs_output}{Color.RESET}')")
-    lines.append("        if minutes > 0:")
-    lines.append(
-        "            print(f'{Color.CYAN}Build time: {minutes}m {seconds}s{Color.RESET}')"
-    )
-    lines.append("        else:")
-    lines.append(
-        "            print(f'{Color.CYAN}Build time: {seconds}s{Color.RESET}')"
-    )
-    lines.append("        return 0")
-    lines.append("    except subprocess.CalledProcessError as e:")
-    lines.append("        print(separator)")
-    lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}Build failed: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
-    )
-    lines.append("        return 1")
-    lines.append("    except Exception as e:")
-    lines.append("        print(separator)")
-    lines.append(
-        "        print(f'{Color.RED}{Color.BOLD}Error: {Color.RESET}{Color.RED}{e}{Color.RESET}')"
-    )
-    lines.append("        return 1")
-    lines.append("")
+    # PyInstaller 特有的清理代码
+    cleanup_code = [
+        "        # 清理 .spec 文件",
+        "        spec_file = f'{PROJECT_NAME}.spec'",
+        "        if os.path.exists(spec_file):",
+        "            os.remove(spec_file)",
+        "            print(f'{Color.GRAY}Cleaned: {spec_file}{Color.RESET}')",
+    ]
 
-    # 主函数
-    lines.append("")
-    lines.append("if __name__ == '__main__':")
-    lines.append("    sys.exit(build())")
-    lines.append("")
+    # 使用公共模板生成执行和结果部分
+    lines.extend(_generate_build_execution())
+    lines.extend(_generate_build_result(cleanup_code))
+    lines.extend(_generate_main_block())
 
     return "\n".join(lines)
 

@@ -170,6 +170,7 @@ Tab.-active {
 /* 基本选项布局 */
 .basic-options-content {
     width: 100%;
+    min-height: 20;
     height: auto;
 }
 
