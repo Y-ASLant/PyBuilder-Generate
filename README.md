@@ -17,7 +17,7 @@
 
 **跨平台 Python 编译脚本生成器**
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20macOS-lightgrey.svg)]()
 
@@ -143,7 +143,7 @@ PyBuild-Generate/
 ├── build_*.py                # 构建脚本
 ├── src/
 │   ├── app.py                # 主应用
-│   ├── screens/              # 8个界面屏幕
+│   ├── screens/              # 12个界面屏幕
 │   └── utils/                # 工具模块
 ├── .github/workflows/        # CI/CD 配置
 └── assets/                   # 资源文件
@@ -154,9 +154,10 @@ PyBuild-Generate/
 ### 运行本工具需要
 
 - Python >= 3.12
-- textual >= 6.8.0
+- textual >= 6.12.0
 - pyfiglet >= 1.0.4
 - loguru >= 0.7.3
+- pyyaml >= 6.0
 - nuitka >= 2.8.9
 - pyinstaller >= 6.17.0
 
