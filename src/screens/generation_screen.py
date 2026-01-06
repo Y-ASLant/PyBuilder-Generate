@@ -107,12 +107,8 @@ class GenerationScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """处理按钮点击"""
         if event.button.id == "back-btn":
-            # 返回到模式选择界面
-            self.app.pop_screen()  # 关闭生成进度界面
-            self.app.pop_screen()  # 关闭打包选项界面
-            self.app.pop_screen()  # 关闭编译配置界面，回到模式选择
+            self.dismiss(self.success)
         elif event.button.id == "exit-btn":
-            # 退出应用
             self.app.exit()
 
     def action_close(self) -> None:

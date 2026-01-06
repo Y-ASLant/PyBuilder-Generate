@@ -12,6 +12,8 @@ from src.screens.compiler_selector_screen import CompilerSelectorScreen
 from src.screens.installer_config_screen import InstallerConfigScreen
 from src.screens.installer_options_screen import InstallerOptionsScreen
 from src.screens.installer_generation_screen import InstallerGenerationScreen
+from src.screens.generation_screen import GenerationScreen
+from src.screens.help_screen import HelpScreen
 
 __all__ = [
     "WelcomeScreen",
@@ -24,4 +26,6 @@ __all__ = [
     "InstallerConfigScreen",
     "InstallerOptionsScreen",
     "InstallerGenerationScreen",
+    "GenerationScreen",
+    "HelpScreen",
 ]

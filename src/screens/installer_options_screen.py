@@ -3,6 +3,7 @@
 配置平台专有的安装包选项（Windows Inno Setup）
 """
 
+import asyncio
 from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
@@ -19,7 +20,11 @@ from textual.widgets import (
 )
 from textual.binding import Binding
 
-from src.utils import load_build_config, save_build_config
+from src.utils import (
+    load_build_config,
+    async_load_build_config,
+    async_save_build_config,
+)
 
 
 class InstallerOptionsScreen(Screen):
@@ -75,10 +80,10 @@ class InstallerOptionsScreen(Screen):
 
         self.call_after_refresh(self._load_and_create_fields)
 
-    def _load_and_create_fields(self) -> None:
+    async def _load_and_create_fields(self) -> None:
         """加载配置并创建字段"""
         try:
-            self.config = load_build_config(self.project_dir)
+            self.config = await async_load_build_config(self.project_dir)
             self._create_options_fields()
         except Exception as e:
             self._show_load_error(str(e))
@@ -166,7 +171,7 @@ class InstallerOptionsScreen(Screen):
             classes="switches-row",
         )
 
-        # 第3行：开关选项 + 文件关联
+        # 第3行：开关选项
         basic_row3 = Horizontal(
             self._create_switch_widget(
                 "uninstall-old-switch",
@@ -174,12 +179,7 @@ class InstallerOptionsScreen(Screen):
                 True,
                 "installer_uninstall_old",
             ),
-            self._create_input_widget(
-                "file-assoc-input",
-                "关联文件类型:",
-                "例如: .txt,.log,.cfg",
-                self.config.get("installer_file_assoc", ""),
-            ),
+            Vertical(classes="field-group"),  # 占位
             classes="switches-row",
         )
 
@@ -222,6 +222,37 @@ class InstallerOptionsScreen(Screen):
             basic_row2,
             basic_row3,
             basic_row4,
+            classes="basic-options-content",
+        )
+
+        # ===== 高级选项标签页 =====
+        # 关联文件类型
+        advanced_row1 = Horizontal(
+            self._create_input_widget(
+                "file-assoc-input",
+                "关联文件类型:",
+                "例如: .txt,.log,.cfg",
+                self.config.get("installer_file_assoc", ""),
+            ),
+            Vertical(classes="field-group"),  # 占位
+            classes="inputs-row",
+        )
+
+        # 额外快捷方式
+        advanced_row2 = Horizontal(
+            self._create_input_widget(
+                "extra-shortcuts-input",
+                "额外快捷方式 (名称;exe文件):",
+                "例如: Word;word.exe Excel;excel.exe",
+                self.config.get("installer_extra_shortcuts", ""),
+            ),
+            Vertical(classes="field-group"),  # 占位
+            classes="inputs-row",
+        )
+
+        advanced_content = Vertical(
+            advanced_row1,
+            advanced_row2,
             classes="basic-options-content",
         )
 
@@ -313,6 +344,7 @@ class InstallerOptionsScreen(Screen):
         # 创建标签页
         tabs = TabbedContent(id="installer-tabs")
         tabs.compose_add_child(TabPane("基本选项", basic_content, id="basic-tab"))
+        tabs.compose_add_child(TabPane("高级选项", advanced_content, id="advanced-tab"))
         tabs.compose_add_child(TabPane("输出设置", output_content, id="output-tab"))
 
         options_container.mount(tabs)
@@ -337,15 +369,20 @@ class InstallerOptionsScreen(Screen):
         existing_config["installer_uninstall_old"] = self.query_one(
             "#uninstall-old-switch", Switch
         ).value
-        existing_config["installer_file_assoc"] = self.query_one(
-            "#file-assoc-input", Input
-        ).value.strip()
         existing_config["installer_privileges"] = self.query_one(
             "#privileges-select", Select
         ).value
         existing_config["installer_path_scope"] = self.query_one(
             "#path-scope-select", Select
         ).value
+
+        # 高级选项
+        existing_config["installer_file_assoc"] = self.query_one(
+            "#file-assoc-input", Input
+        ).value.strip()
+        existing_config["installer_extra_shortcuts"] = self.query_one(
+            "#extra-shortcuts-input", Input
+        ).value.strip()
 
         # 输出设置
         existing_config["installer_output_dir"] = self.query_one(
@@ -376,45 +413,53 @@ class InstallerOptionsScreen(Screen):
         self.config = existing_config
 
     def _validate_and_save(self) -> bool:
-        """验证并保存配置"""
+        """验证配置"""
         self._save_config_from_ui()
+        return True
 
-        success = save_build_config(self.project_dir, self.config)
+    async def _async_save_config(self) -> bool:
+        """异步保存配置到文件"""
+        success = await async_save_build_config(self.project_dir, self.config)
         if not success:
             self.app.notify("配置保存失败", severity="error")
-            return False
-
-        return True
+        return success
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """处理按钮点击"""
         button_id = event.button.id
 
         if button_id == "back-btn":
-            self.action_back()
+            asyncio.create_task(self.action_back())
         elif button_id == "save-btn":
-            self.action_save()
+            asyncio.create_task(self.action_save())
         elif button_id == "generate-btn":
             self.run_worker(self.action_generate())
 
-    def action_back(self) -> None:
+    async def action_back(self) -> None:
         """返回上一屏"""
         try:
             self._save_config_from_ui()
-            save_build_config(self.project_dir, self.config)
+            await self._async_save_config()
         except Exception:
             pass
         self.app.pop_screen()
 
-    def action_save(self) -> None:
+    async def action_save(self) -> None:
         """保存配置"""
         if self._validate_and_save():
-            self.app.notify("配置已保存", severity="information")
+            self._save_config_from_ui()
+            success = await self._async_save_config()
+            if success:
+                self.app.notify("配置已保存", severity="information")
 
     async def action_generate(self) -> None:
         """生成安装包脚本"""
         if not self._validate_and_save():
             return
+
+        self._save_config_from_ui()
+        # 异步保存配置
+        await self._async_save_config()
 
         from src.screens.installer_generation_screen import InstallerGenerationScreen
 
@@ -425,7 +470,7 @@ class InstallerOptionsScreen(Screen):
         if result and result[0]:
             # 生成成功，更新 config（包含自动生成的 AppId）
             self.config = result[1]
-            save_build_config(self.project_dir, self.config)
+            await self._async_save_config()
             # 更新 UI 中的 AppId 显示
             try:
                 appid_input = self.query_one("#appid-input", Input)

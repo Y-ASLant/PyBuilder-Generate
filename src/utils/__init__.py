@@ -7,6 +7,8 @@ from src.utils.config import load_config, save_config, get_config_path, DEFAULT_
 from src.utils.build_config import (
     load_build_config,
     save_build_config,
+    async_load_build_config,
+    async_save_build_config,
     validate_build_config,
     get_build_config_path,
     DEFAULT_BUILD_CONFIG,
@@ -22,6 +24,8 @@ __all__ = [
     "DEFAULT_CONFIG",
     "load_build_config",
     "save_build_config",
+    "async_load_build_config",
+    "async_save_build_config",
     "validate_build_config",
     "get_build_config_path",
     "DEFAULT_BUILD_CONFIG",

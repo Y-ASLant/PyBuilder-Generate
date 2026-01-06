@@ -6,9 +6,8 @@ ProjectSelectorScreen {
 }
 
 #selector-container {
-    width: 96;
-    height: auto;
-    max-height: 30;
+    width: 100;
+    height: 1fr;
     padding: 1 2;
 }
 
@@ -92,6 +91,7 @@ ListItem {
 #button-container {
     width: 100%;
     height: auto;
+    dock: bottom;
     layout: horizontal;
     align: center middle;
     margin-top: 1;

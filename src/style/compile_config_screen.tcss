@@ -7,7 +7,7 @@ CompileConfigScreen, InstallerConfigScreen {
 
 #config-container {
     width: 100;
-    height: auto;
+    height: 1fr;
     padding: 1 2;
 }
 
@@ -87,6 +87,7 @@ CompileConfigScreen, InstallerConfigScreen {
 #button-container {
     width: 100%;
     height: auto;
+    dock: bottom;
     layout: horizontal;
     align: center middle;
     margin-top: 1;

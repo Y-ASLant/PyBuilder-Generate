@@ -3,27 +3,27 @@
 配置编译打包的详细选项
 """
 
+import asyncio
 from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.containers import Container, Vertical, Horizontal
+from textual.containers import Container, Horizontal
 from textual.widgets import (
     Static,
     Button,
     Switch,
-    Label,
     Input,
-    TabbedContent,
-    TabPane,
     Select,
 )
 from textual.binding import Binding
 
 from src.utils import (
     load_build_config,
-    save_build_config,
+    async_load_build_config,
+    async_save_build_config,
     validate_build_config,
 )
+from src.widgets import build_nuitka_options, build_pyinstaller_options
 
 
 class PackageOptionsScreen(Screen):
@@ -93,11 +93,11 @@ class PackageOptionsScreen(Screen):
         # 使用异步加载，避免阻塞渲染
         self.call_after_refresh(self._load_and_create_fields)
 
-    def _load_and_create_fields(self) -> None:
+    async def _load_and_create_fields(self) -> None:
         """异步加载配置并创建字段"""
         try:
-            # 加载现有配置或使用默认配置
-            self.config = load_build_config(self.project_dir)
+            # 异步加载现有配置或使用默认配置
+            self.config = await async_load_build_config(self.project_dir)
 
             # 加载插件配置
             plugins_value = self.config.get("plugins", "")
@@ -147,62 +147,6 @@ class PackageOptionsScreen(Screen):
                 classes="error-text",
             )
         )
-
-    def _create_switch_widget(
-        self, switch_id: str, label: str, default_value: bool, config_key: str
-    ):
-        """创建开关组件的辅助方法"""
-        return Vertical(
-            Horizontal(
-                Switch(
-                    value=self.config.get(config_key, default_value),
-                    id=switch_id,
-                    classes="field-switch",
-                ),
-                Label(label, classes="field-switch-label"),
-                classes="field-switch-container",
-            ),
-            classes="field-group",
-        )
-
-    def _create_input_widget(
-        self, input_id: str, label: str, config_key: str, placeholder: str
-    ):
-        """创建输入框组件的辅助方法"""
-        return Vertical(
-            Label(label, classes="field-label"),
-            Input(
-                value=self.config.get(config_key, ""),
-                placeholder=placeholder,
-                id=input_id,
-                classes="field-input",
-            ),
-            classes="field-group",
-        )
-
-    def _create_button_row(self, label1: str, id1: str, label2: str, id2: str):
-        """创建按钮行"""
-        return Horizontal(
-            Vertical(
-                Label(label1, classes="field-label"),
-                Button(
-                    id1.replace("-button", "..."), id=id1, variant="primary", flat=True
-                ),
-                classes="field-group",
-            ),
-            Vertical(
-                Label(label2, classes="field-label"),
-                Button(
-                    id2.replace("-button", "..."), id=id2, variant="primary", flat=True
-                ),
-                classes="field-group",
-            ),
-            classes="inputs-row",
-        )
-
-    def _create_switch_row(self, *switches):
-        """创建开关行"""
-        return Horizontal(*switches, classes="switches-row")
 
     def _update_no_pyi_switch_state(self):
         """更新不生成 .pyi 文件开关的状态（仅 module/package 模式可用）"""
@@ -257,418 +201,18 @@ class PackageOptionsScreen(Screen):
         except Exception:
             pass
 
-        # Nuitka特有选项 - 使用标签页分组
+        # 使用组件构建器创建选项标签页
         if build_tool == "nuitka":
-            # 基本选项 - 按钮行
-            buttons_row = self._create_button_row(
-                "C 编译器:", "compiler-button", "启用插件:", "plugins-button"
-            )
-
-            # 基本选项 - 开关行1
-            switches_row1 = self._create_switch_row(
-                self._create_switch_widget(
-                    "standalone-switch", "独立打包 (Standalone)", True, "standalone"
-                ),
-                self._create_switch_widget(
-                    "onefile-switch", "单文件模式 (One File)", True, "onefile"
-                ),
-            )
-
-            # 基本选项 - 开关行2
-            switch3 = self._create_switch_widget(
-                "console-switch", "显示终端窗口 (Windows)", False, "show_console"
-            )
-            python_flag_value = bool(self.config.get("python_flag", ""))
-            switch4 = Vertical(
-                Horizontal(
-                    Switch(
-                        value=python_flag_value,
-                        id="python-flag-switch",
-                        classes="field-switch",
-                    ),
-                    Label("Python优化 (移除断言和文档)", classes="field-switch-label"),
-                    classes="field-switch-container",
-                ),
-                classes="field-group",
-            )
-
-            # 基本选项 - 开关行3：跟随导入 + 不生成 .pyi 文件
-            follow_imports_switch = self._create_switch_widget(
-                "follow-imports-switch",
-                "跟随导入 (自动包含模块)",
-                True,
-                "follow_imports",
-            )
-            no_pyi_switch = self._create_switch_widget(
-                "no-pyi-switch", "不生成 .pyi 文件 (仅module模式)", False, "no_pyi_file"
-            )
-
-            switches_row2 = self._create_switch_row(switch3, switch4)
-            switches_row3_basic = self._create_switch_row(
-                follow_imports_switch, no_pyi_switch
-            )
-
-            # 基本选项标签页内容（垂直布局：1行按钮 + 3行开关）
-            basic_content = Vertical(
-                buttons_row,
-                switches_row1,
-                switches_row2,
-                switches_row3_basic,
-                classes="basic-options-content",
-            )
-
-            # 高级选项 - 第1行：LTO 下拉选择 + 静默输出开关
-            lto_value = self.config.get("lto", "no")
-            # 兼容旧的布尔值
-            if isinstance(lto_value, bool):
-                lto_value = "yes" if lto_value else "no"
-
-            # LTO 下拉选择
-            lto_select = Select(
-                [
-                    ("关闭 LTO（链接时优化）", "no"),
-                    ("启用 LTO（链接时优化）", "yes"),
-                    ("自动 LTO（链接时优化）", "auto"),
-                ],
-                value=lto_value,
-                id="lto-select",
-                classes="field-select field-group",
-                allow_blank=False,
-            )
-
-            # 静默输出开关
-            quiet_switch = self._create_switch_widget(
-                "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
-            )
-
-            switches_row3 = self._create_switch_row(lto_select, quiet_switch)
-
-            # 高级选项 - 第2行
-            switches_row4 = self._create_switch_row(
-                self._create_switch_widget(
-                    "remove-output-switch",
-                    "移除构建文件 (节省空间)",
-                    True,
-                    "remove_output",
-                ),
-                Horizontal(
-                    Label("编译线程:", classes="field-label-inline"),
-                    Input(
-                        placeholder="0",
-                        value=str(self.config.get("jobs", 0)),
-                        id="jobs-input",
-                        classes="field-input",
-                    ),
-                    Button("-", id="jobs-decrease-btn", variant="default", flat=True),
-                    Button("+", id="jobs-increase-btn", variant="default", flat=True),
-                    classes="field-switch-container field-group",
-                ),
-            )
-
-            # 高级选项 - 第3行：自动下载依赖工具
-            switches_row5 = self._create_switch_row(
-                self._create_switch_widget(
-                    "assume-yes-switch",
-                    "自动下载依赖 (CI环境必需)",
-                    False,
-                    "assume_yes_for_downloads",
-                ),
-                Vertical(classes="field-group"),  # 占位元素
-            )
-
-            # 高级选项标签页内容（垂直布局：3行）
-            advanced_content = Vertical(
-                switches_row3,
-                switches_row4,
-                switches_row5,
-                classes="basic-options-content",
-            )
-
-            # 数据导入标签页 - 第1行输入框（2个）
-            nuitka_import_input1 = self._create_input_widget(
-                "nuitka-include-package-input",
-                "包含包 (支持空格、中英文逗号分隔):",
-                "include_packages",
-                "例如: numpy pandas PIL",
-            )
-            nuitka_import_input2 = self._create_input_widget(
-                "nuitka-include-module-input",
-                "包含模块 (支持空格、中英文逗号分隔):",
-                "include_modules",
-                "例如: requests.adapters os.path",
-            )
-            nuitka_import_row1 = Horizontal(
-                nuitka_import_input1, nuitka_import_input2, classes="inputs-row"
-            )
-
-            # 数据导入标签页 - 第2行输入框（2个）
-            nuitka_import_input3 = self._create_input_widget(
-                "nuitka-nofollow-import-input",
-                "排除导入 (支持空格、中英文逗号分隔):",
-                "nofollow_imports",
-                "例如: tkinter test unittest",
-            )
-            nuitka_import_input4 = self._create_input_widget(
-                "nuitka-include-data-files-input",
-                "数据文件 (支持空格、中英文逗号分隔):",
-                "include_data_files",
-                "格式: src;dest 多个用空格",
-            )
-            nuitka_import_row2 = Horizontal(
-                nuitka_import_input3, nuitka_import_input4, classes="inputs-row"
-            )
-
-            # 数据导入标签页 - 第3行输入框（2个）
-            nuitka_import_input5 = self._create_input_widget(
-                "nuitka-include-data-dir-input",
-                "数据目录 (支持空格、中英文逗号分隔):",
-                "include_data_dirs",
-                "格式: src;dest 多个用空格",
-            )
-            nuitka_import_input6 = Vertical(
-                Label("", classes="field-label"),  # 占位
-                classes="field-group",
-            )
-            nuitka_import_row3 = Horizontal(
-                nuitka_import_input5, nuitka_import_input6, classes="inputs-row"
-            )
-
-            # 数据导入标签页内容（垂直布局：3行输入框）
-            nuitka_import_content = Vertical(
-                nuitka_import_row1,
-                nuitka_import_row2,
-                nuitka_import_row3,
-                classes="basic-options-content",
-            )
-
-            # 创建标签页容器并使用 compose 方法添加标签页
-            tabs = TabbedContent(id="nuitka-tabs")
-            tabs.compose_add_child(TabPane("基本选项", basic_content, id="basic-tab"))
-            tabs.compose_add_child(
-                TabPane("高级选项", advanced_content, id="advanced-tab")
-            )
-            tabs.compose_add_child(
-                TabPane("数据导入", nuitka_import_content, id="nuitka-import-tab")
-            )
-
-            # 挂载标签页容器
+            tabs = build_nuitka_options(self.config)
             options_container.mount(tabs)
+            return
 
-            return  # Nuitka 使用标签页，不需要下面的两列布局
-
-        # PyInstaller特有选项 - 使用标签页分组
         if build_tool == "pyinstaller":
-            # 基本选项 - 2个开关横向排列
-            switch1 = self._create_switch_widget(
-                "onefile-switch", "单文件模式", True, "onefile"
-            )
-            switch2 = self._create_switch_widget(
-                "uac-admin-switch", "管理员权限 (Windows UAC)", False, "uac_admin"
-            )
-            switches_row = Horizontal(switch1, switch2, classes="switches-row")
-
-            # 基本选项 - 第1行输入框（2个）
-            input1 = self._create_input_widget(
-                "contents-dir-input",
-                "内部目录名称:",
-                "contents_directory",
-                "_internal (默认为 .)",
-            )
-            input2 = self._create_input_widget(
-                "splash-image-input",
-                "启动画面图片 (仅单文件模式):",
-                "splash_image",
-                "例如: splash.png",
-            )
-            inputs_row1 = Horizontal(input1, input2, classes="inputs-row")
-
-            # 基本选项 - 第2行输入框（1个）
-            input3 = self._create_input_widget(
-                "runtime-tmpdir-input",
-                "运行时临时目录 (仅单文件模式):",
-                "runtime_tmpdir",
-                "例如: /tmp/myapp",
-            )
-            input4 = Vertical(
-                Label("", classes="field-label"),  # 占位
-                classes="field-group",
-            )
-            inputs_row2 = Horizontal(input3, input4, classes="inputs-row")
-
-            # 基本选项标签页内容（垂直布局：1行开关 + 2行输入框）
-            basic_content = Vertical(
-                switches_row, inputs_row1, inputs_row2, classes="basic-options-content"
-            )
-
-            # 高级选项 - 第1行开关（2个）
-            switch3 = self._create_switch_widget(
-                "clean-switch", "清理临时文件", True, "clean"
-            )
-            switch4 = self._create_switch_widget(
-                "noconfirm-switch", "自动确认 (跳过删除提示)", False, "noconfirm"
-            )
-            switches_row1 = Horizontal(switch3, switch4, classes="switches-row")
-
-            # 高级选项 - 第2行开关（2个）
-            switch5 = self._create_switch_widget(
-                "quiet-switch", "静默输出 (仅进度条)", False, "quiet_mode"
-            )
-            switch6 = self._create_switch_widget(
-                "debug-switch", "调试模式 (输出详细信息)", False, "debug"
-            )
-            switches_row2 = Horizontal(switch5, switch6, classes="switches-row")
-
-            # 高级选项标签页内容（垂直布局：2行开关）
-            advanced_content = Vertical(
-                switches_row1,
-                switches_row2,
-                classes="basic-options-content",
-            )
-
-            # 数据导入标签页 - 第1行输入框（2个）
-            import_input1 = self._create_input_widget(
-                "hidden-imports-input",
-                "隐藏导入 (支持空格、中英文逗号分隔):",
-                "hidden_imports",
-                "例如: PIL numpy.core pandas",
-            )
-            import_input2 = self._create_input_widget(
-                "exclude-modules-input",
-                "排除模块 (支持空格、中英文逗号分隔):",
-                "exclude_modules",
-                "例如: tkinter test unittest",
-            )
-            import_row1 = Horizontal(import_input1, import_input2, classes="inputs-row")
-
-            # 数据导入标签页 - 第2行输入框（2个）
-            import_input3 = self._create_input_widget(
-                "collect-submodules-input",
-                "收集子模块 (支持空格、中英文逗号分隔):",
-                "collect_submodules",
-                "例如: textual pyfiglet",
-            )
-            import_input4 = self._create_input_widget(
-                "collect-data-input",
-                "收集数据文件 (支持空格、中英文逗号分隔):",
-                "collect_data",
-                "例如: textual pyfiglet",
-            )
-            import_row2 = Horizontal(import_input3, import_input4, classes="inputs-row")
-
-            # 数据导入标签页 - 第3行输入框（2个）
-            import_input5 = self._create_input_widget(
-                "collect-binaries-input",
-                "收集二进制文件 (支持空格、中英文逗号分隔):",
-                "collect_binaries",
-                "例如: numpy PIL",
-            )
-            import_input6 = self._create_input_widget(
-                "collect-all-input",
-                "收集所有 (支持空格、中英文逗号分隔):",
-                "collect_all",
-                "例如: cv2 scipy",
-            )
-            import_row3 = Horizontal(import_input5, import_input6, classes="inputs-row")
-
-            # 数据导入标签页 - 第4行输入框（2个）
-            import_input7 = self._create_input_widget(
-                "add-data-input",
-                "数据文件 (支持空格、中英文逗号分隔):",
-                "add_data",
-                "格式: src;dest 多个用空格",
-            )
-            import_input8 = self._create_input_widget(
-                "add-binary-input",
-                "二进制文件 (支持空格、中英文逗号分隔):",
-                "add_binary",
-                "格式: src;dest 多个用空格",
-            )
-            import_row4 = Horizontal(import_input7, import_input8, classes="inputs-row")
-
-            # 数据导入标签页内容（垂直布局：4行输入框）
-            import_content = Vertical(
-                import_row1,
-                import_row2,
-                import_row3,
-                import_row4,
-                classes="basic-options-content",
-            )
-
-            # 系统特性标签页 - Windows 特性（第1行输入框）
-            platform_input1 = self._create_input_widget(
-                "win-version-file-input",
-                "Windows 版本信息文件:",
-                "win_version_file",
-                "例如: version_info.txt",
-            )
-            platform_input2 = self._create_input_widget(
-                "win-manifest-input",
-                "Windows Manifest 文件:",
-                "win_manifest",
-                "例如: app.manifest",
-            )
-            platform_row1 = Horizontal(
-                platform_input1, platform_input2, classes="inputs-row"
-            )
-
-            # 系统特性标签页 - macOS 特性（第2行输入框）
-            platform_input3 = self._create_input_widget(
-                "target-arch-input",
-                "目标架构 (macOS):",
-                "target_architecture",
-                "例如: x86_64, arm64, universal2",
-            )
-            platform_input4 = self._create_input_widget(
-                "osx-bundle-id-input",
-                "macOS Bundle 标识符:",
-                "osx_bundle_identifier",
-                "例如: com.company.appname",
-            )
-            platform_row2 = Horizontal(
-                platform_input3, platform_input4, classes="inputs-row"
-            )
-
-            # 系统特性标签页 - macOS 特性（第3行输入框）
-            platform_input5 = self._create_input_widget(
-                "osx-entitlements-input",
-                "macOS 权限文件:",
-                "osx_entitlements_file",
-                "例如: entitlements.plist",
-            )
-            platform_input6 = self._create_input_widget(
-                "codesign-identity-input",
-                "代码签名身份 (macOS):",
-                "codesign_identity",
-                "例如: Developer ID Application",
-            )
-            platform_row3 = Horizontal(
-                platform_input5, platform_input6, classes="inputs-row"
-            )
-
-            # 系统特性标签页内容（垂直布局：3行输入框）
-            platform_content = Vertical(
-                platform_row1,
-                platform_row2,
-                platform_row3,
-                classes="basic-options-content",
-            )
-
-            # 创建标签页容器并使用 compose 方法添加标签页
-            tabs = TabbedContent(id="pyinstaller-tabs")
-            tabs.compose_add_child(TabPane("基本选项", basic_content, id="basic-tab"))
-            tabs.compose_add_child(
-                TabPane("高级选项", advanced_content, id="advanced-tab")
-            )
-            tabs.compose_add_child(TabPane("数据导入", import_content, id="import-tab"))
-            tabs.compose_add_child(
-                TabPane("系统特性", platform_content, id="platform-tab")
-            )
-
-            # 挂载标签页容器
+            tabs = build_pyinstaller_options(self.config)
             options_container.mount(tabs)
 
     def _save_config_from_ui(self) -> None:
-        """从UI保存配置（只更新打包选项字段，保留编译配置）"""
+        """从UI保存配置到内存（只更新打包选项字段，保留编译配置）"""
         # 先加载现有配置，保留编译配置字段
         existing_config = load_build_config(self.project_dir)
         build_tool = existing_config.get("build_tool", "nuitka")
@@ -695,9 +239,15 @@ class PackageOptionsScreen(Screen):
             # LTO 从下拉选择获取
             lto_select = self.query_one("#lto-select", Select)
             existing_config["lto"] = lto_select.value if lto_select.value else "no"
-            existing_config["no_pyi_file"] = self.query_one(
-                "#no-pyi-switch", Switch
-            ).value
+            # no_pyi_file 仅在 module/package 模式下更新，其他模式保留配置文件中的值
+            mode = self.config.get("mode", "").strip().lower()
+            if mode in ("module", "package"):
+                existing_config["no_pyi_file"] = self.query_one(
+                    "#no-pyi-switch", Switch
+                ).value
+            else:
+                # 非有效模式时，保留配置文件中的值，不覆盖
+                existing_config["no_pyi_file"] = self.config.get("no_pyi_file", False)
             existing_config["follow_imports"] = self.query_one(
                 "#follow-imports-switch", Switch
             ).value
@@ -951,9 +501,9 @@ class PackageOptionsScreen(Screen):
         button_id = event.button.id
 
         if button_id == "back-btn":
-            self.action_back()
+            asyncio.create_task(self.action_back())
         elif button_id == "save-btn":
-            self.action_save()
+            asyncio.create_task(self.action_save())
         elif button_id == "generate-btn":
             self.run_worker(self.action_generate())
         elif button_id == "plugins-button":
@@ -977,12 +527,12 @@ class PackageOptionsScreen(Screen):
         new_value = current_value + delta
         jobs_input.value = str(new_value)
 
-    def action_back(self) -> None:
+    async def action_back(self) -> None:
         """返回上一屏"""
         # 返回前自动保存配置
         try:
             self._save_config_from_ui()
-            save_build_config(self.project_dir, self.config)
+            await self._async_save_config()
         except Exception as e:
             # 显示保存失败的错误信息
             self.app.notify(f"保存配置失败: {str(e)}", severity="error")
@@ -1026,7 +576,7 @@ class PackageOptionsScreen(Screen):
             self.app.notify(f"已选择编译器: {compiler_name}", severity="information")
 
     def _validate_and_save(self) -> bool:
-        """验证并保存配置，返回是否成功"""
+        """验证配置，返回是否成功"""
         self._save_config_from_ui()
 
         # 验证配置
@@ -1035,27 +585,35 @@ class PackageOptionsScreen(Screen):
             self.app.notify(f"配置验证失败: {error_msg}", severity="error")
             return False
 
-        # 保存到文件
-        success = save_build_config(self.project_dir, self.config)
-        if not success:
-            self.app.notify("配置保存失败", severity="error")
-            return False
-
         return True
 
-    def action_save(self) -> None:
+    async def _async_save_config(self) -> bool:
+        """异步保存配置到文件"""
+        success = await async_save_build_config(self.project_dir, self.config)
+        if not success:
+            self.app.notify("配置保存失败", severity="error")
+        return success
+
+    async def action_save(self) -> None:
         """保存配置"""
         # 保存前检查冲突
         if self.config.get("build_tool") == "pyinstaller":
             self._check_collect_conflicts()
 
         if self._validate_and_save():
-            self.app.notify("配置已保存", severity="information")
+            self._save_config_from_ui()
+            success = await self._async_save_config()
+            if success:
+                self.app.notify("配置已保存", severity="information")
 
     async def action_generate(self) -> None:
         """生成编译脚本"""
         if not self._validate_and_save():
             return
+
+        self._save_config_from_ui()
+        # 异步保存配置
+        await self._async_save_config()
 
         # 打开生成进度界面
         from src.screens.generation_screen import GenerationScreen

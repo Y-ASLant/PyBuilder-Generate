@@ -3,9 +3,12 @@
 用于管理项目目录中的 build_config.yaml
 """
 
+import asyncio
 from pathlib import Path
 from typing import Dict, Any
 import platform
+
+import yaml
 
 
 # 默认构建配置
@@ -86,54 +89,28 @@ def load_build_config(project_dir: Path) -> Dict[str, Any]:
     try:
         if path.exists():
             with path.open("r", encoding="utf-8") as f:
-                current_list = None
-
-                for line in f:
-                    s = line.strip()
-
-                    # 跳过注释和空行
-                    if not s or s.startswith("#"):
-                        continue
-
-                    # 处理列表项
-                    if s.startswith("- "):
-                        if current_list is not None:
-                            item = s[2:].strip()
-                            current_list.append(item)
-                        continue
-
-                    # 处理键值对
-                    if ":" in s:
-                        key, value = s.split(":", 1)
-                        key = key.strip()
-                        value = value.strip()
-
-                        # 去除行内注释
-                        if "#" in value:
-                            value = value.split("#")[0].strip()
-
-                        # 如果值为空，可能是列表开始
-                        if not value:
-                            if key in ["plugins", "exclude_packages"]:
-                                config[key] = []
-                                current_list = config[key]
-                            continue
-
-                        # 重置列表指针
-                        current_list = None
-
-                        # 根据默认配置的类型转换值
-                        if key in config:
+                loaded = yaml.safe_load(f)
+                if loaded and isinstance(loaded, dict):
+                    # 合并加载的配置到默认配置
+                    for key, value in loaded.items():
+                        if key in DEFAULT_BUILD_CONFIG:
+                            # 类型转换以匹配默认配置的类型
                             default_value = DEFAULT_BUILD_CONFIG[key]
-                            if isinstance(default_value, bool):
-                                config[key] = value.lower() in ["true", "yes", "1"]
-                            elif isinstance(default_value, int):
+                            if isinstance(default_value, bool) and not isinstance(
+                                value, bool
+                            ):
+                                config[key] = str(value).lower() in ["true", "yes", "1"]
+                            elif isinstance(default_value, int) and not isinstance(
+                                value, int
+                            ):
                                 try:
                                     config[key] = int(value)
-                                except ValueError:
+                                except (ValueError, TypeError):
                                     pass
-                            elif isinstance(default_value, list):
-                                # 单行列表格式
+                            elif isinstance(default_value, list) and isinstance(
+                                value, str
+                            ):
+                                # 字符串转列表（逗号分隔）
                                 config[key] = [
                                     v.strip() for v in value.split(",") if v.strip()
                                 ]
@@ -141,12 +118,7 @@ def load_build_config(project_dir: Path) -> Dict[str, Any]:
                                 config[key] = value
                         else:
                             # 不在默认配置中的字段（如 installer_* ），直接保存
-                            if value.lower() in ["true", "yes"]:
-                                config[key] = True
-                            elif value.lower() in ["false", "no"]:
-                                config[key] = False
-                            else:
-                                config[key] = value
+                            config[key] = value
     except Exception as e:
         print(f"加载构建配置失败: {e}")
 
@@ -334,6 +306,7 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             ("installer_compression", "压缩方式"),
             ("installer_path_scope", "PATH作用域"),
             ("installer_file_assoc", "关联文件类型"),
+            ("installer_extra_shortcuts", "额外快捷方式"),
         ]
 
         installer_bool_keys = [
@@ -402,3 +375,27 @@ def validate_build_config(
         return False, "构建工具必须是 pyinstaller 或 nuitka"
 
     return True, ""
+
+
+async def async_save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
+    """异步保存构建配置到项目目录"""
+    try:
+        loop = asyncio.get_event_loop()
+        success = await loop.run_in_executor(
+            None, lambda: save_build_config(project_dir, config)
+        )
+        return success
+    except Exception:
+        return False
+
+
+async def async_load_build_config(project_dir: Path) -> Dict[str, Any]:
+    """异步加载项目构建配置"""
+    try:
+        loop = asyncio.get_event_loop()
+        config = await loop.run_in_executor(
+            None, lambda: load_build_config(project_dir)
+        )
+        return config
+    except Exception:
+        return DEFAULT_BUILD_CONFIG.copy()

@@ -3,6 +3,7 @@
 配置通用的安装包信息（应用名、版本、发布者等）
 """
 
+import asyncio
 from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
@@ -10,7 +11,11 @@ from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button, Input, Label, Select
 from textual.binding import Binding
 
-from src.utils import load_build_config, save_build_config
+from src.utils import (
+    load_build_config,
+    async_load_build_config,
+    async_save_build_config,
+)
 
 
 class InstallerConfigScreen(Screen):
@@ -114,7 +119,7 @@ class InstallerConfigScreen(Screen):
                 yield Button("保存配置", variant="primary", id="save-btn", flat=True)
                 yield Button("下一步", variant="success", id="next-btn", flat=True)
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """挂载时加载配置"""
         self.project_dir = self.app.project_dir
         if not self.project_dir:
@@ -122,7 +127,7 @@ class InstallerConfigScreen(Screen):
             self.app.pop_screen()
             return
 
-        self.config = load_build_config(self.project_dir)
+        self.config = await async_load_build_config(self.project_dir)
         self._load_config_to_ui()
 
     def _load_config_to_ui(self) -> None:
@@ -198,7 +203,7 @@ class InstallerConfigScreen(Screen):
         return True, ""
 
     def _validate_and_save(self) -> bool:
-        """验证并保存配置"""
+        """验证配置"""
         self._save_config_from_ui()
 
         is_valid, error_msg = self._validate_config()
@@ -206,12 +211,14 @@ class InstallerConfigScreen(Screen):
             self.app.notify(f"配置验证失败: {error_msg}", severity="error")
             return False
 
-        success = save_build_config(self.project_dir, self.config)
+        return True
+
+    async def _async_save_config(self) -> bool:
+        """异步保存配置到文件"""
+        success = await async_save_build_config(self.project_dir, self.config)
         if not success:
             self.app.notify("配置保存失败", severity="error")
-            return False
-
-        return True
+        return success
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """处理平台选择变化"""
@@ -227,23 +234,30 @@ class InstallerConfigScreen(Screen):
         if button_id == "back-btn":
             self.action_back()
         elif button_id == "save-btn":
-            self.action_save()
+            asyncio.create_task(self.action_save())
         elif button_id == "next-btn":
-            self.action_next()
+            asyncio.create_task(self.action_next())
 
     def action_back(self) -> None:
         """返回上一屏"""
         self.app.pop_screen()
 
-    def action_save(self) -> None:
+    async def action_save(self) -> None:
         """保存配置"""
         if self._validate_and_save():
-            self.app.notify("配置已保存", severity="information")
+            self._save_config_from_ui()
+            success = await self._async_save_config()
+            if success:
+                self.app.notify("配置已保存", severity="information")
 
-    def action_next(self) -> None:
+    async def action_next(self) -> None:
         """进入下一步：平台专有选项"""
         if not self._validate_and_save():
             return
+
+        self._save_config_from_ui()
+        # 异步保存配置
+        await self._async_save_config()
 
         platform = self.config.get("installer_platform", "windows")
 
