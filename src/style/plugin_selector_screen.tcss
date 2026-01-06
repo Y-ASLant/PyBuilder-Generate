@@ -39,6 +39,7 @@ PluginSelectorScreen {
 #button-container {
     width: 100%;
     height: auto;
+    dock: bottom;
     layout: horizontal;
     align: center middle;
     margin-top: 1;

@@ -45,6 +45,7 @@ LoadingIndicator {
 #button-container {
     width: 100%;
     height: auto;
+    dock: bottom;
     align: center middle;
     margin-top: 2;
 }
