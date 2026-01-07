@@ -39,7 +39,7 @@ class PackageOptionsScreen(Screen):
     def __init__(self):
         super().__init__()
         self.config = {}
-        self.project_dir: Path = None
+        self.project_dir: Path | None = None
         self.selected_plugins: list[str] = []  # 存储选中的插件
         # 根据平台设置默认编译器
         import platform
@@ -84,7 +84,7 @@ class PackageOptionsScreen(Screen):
 
     def on_mount(self) -> None:
         """挂载时加载配置"""
-        self.project_dir = self.app.project_dir
+        self.project_dir = self.app.project_dir  # type: ignore[assignment]
         if not self.project_dir:
             self.app.notify("未选择项目目录", severity="error")
             self.app.pop_screen()
@@ -97,7 +97,7 @@ class PackageOptionsScreen(Screen):
         """异步加载配置并创建字段"""
         try:
             # 异步加载现有配置或使用默认配置
-            self.config = await async_load_build_config(self.project_dir)
+            self.config = await async_load_build_config(self.project_dir)  # type: ignore[arg-type]
 
             # 加载插件配置
             plugins_value = self.config.get("plugins", "")
@@ -214,7 +214,7 @@ class PackageOptionsScreen(Screen):
     def _save_config_from_ui(self) -> None:
         """从UI保存配置到内存（只更新打包选项字段，保留编译配置）"""
         # 先加载现有配置，保留编译配置字段
-        existing_config = load_build_config(self.project_dir)
+        existing_config = load_build_config(self.project_dir)  # type: ignore[arg-type]
         build_tool = existing_config.get("build_tool", "nuitka")
 
         # Nuitka特有选项
@@ -580,7 +580,7 @@ class PackageOptionsScreen(Screen):
         self._save_config_from_ui()
 
         # 验证配置
-        is_valid, error_msg = validate_build_config(self.config, self.project_dir)
+        is_valid, error_msg = validate_build_config(self.config, self.project_dir)  # type: ignore[arg-type]
         if not is_valid:
             self.app.notify(f"配置验证失败: {error_msg}", severity="error")
             return False
@@ -589,7 +589,7 @@ class PackageOptionsScreen(Screen):
 
     async def _async_save_config(self) -> bool:
         """异步保存配置到文件"""
-        success = await async_save_build_config(self.project_dir, self.config)
+        success = await async_save_build_config(self.project_dir, self.config)  # type: ignore[arg-type]
         if not success:
             self.app.notify("配置保存失败", severity="error")
         return success
@@ -619,7 +619,7 @@ class PackageOptionsScreen(Screen):
         from src.screens.generation_screen import GenerationScreen
 
         result = await self.app.push_screen_wait(
-            GenerationScreen(self.config, self.project_dir)
+            GenerationScreen(self.config, self.project_dir)  # type: ignore[arg-type]
         )
 
         if result:

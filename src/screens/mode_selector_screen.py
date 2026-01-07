@@ -88,7 +88,7 @@ class ModeSelectorScreen(Screen):
 
     def action_confirm(self) -> None:
         """确认选择并进入下一步"""
-        self.app.build_mode = self.selected_mode
+        self.app.build_mode = self.selected_mode  # type: ignore[assignment]
 
         mode_names = {
             "full": "完整模式",

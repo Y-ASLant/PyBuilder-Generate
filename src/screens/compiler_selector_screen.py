@@ -47,7 +47,7 @@ class CompilerSelectorScreen(Screen):
         Binding("enter", "confirm", "确认"),
     ]
 
-    def __init__(self, selected_compiler: str = None):
+    def __init__(self, selected_compiler: str | None = None):
         super().__init__()
         self.os_type = platform.system()
         # 根据平台设置默认编译器

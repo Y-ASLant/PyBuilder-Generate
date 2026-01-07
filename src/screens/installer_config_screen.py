@@ -31,7 +31,7 @@ class InstallerConfigScreen(Screen):
     def __init__(self):
         super().__init__()
         self.config = {}
-        self.project_dir: Path = None
+        self.project_dir: Path | None = None
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
@@ -121,7 +121,7 @@ class InstallerConfigScreen(Screen):
 
     async def on_mount(self) -> None:
         """挂载时加载配置"""
-        self.project_dir = self.app.project_dir
+        self.project_dir = self.app.project_dir  # type: ignore[assignment]
         if not self.project_dir:
             self.app.notify("未选择项目目录", severity="error")
             self.app.pop_screen()
@@ -164,7 +164,7 @@ class InstallerConfigScreen(Screen):
 
     def _save_config_from_ui(self) -> None:
         """从UI保存配置"""
-        existing_config = load_build_config(self.project_dir)
+        existing_config = load_build_config(self.project_dir)  # type: ignore[arg-type]
 
         existing_config["installer_platform"] = self.query_one(
             "#platform-select", Select
@@ -215,7 +215,7 @@ class InstallerConfigScreen(Screen):
 
     async def _async_save_config(self) -> bool:
         """异步保存配置到文件"""
-        success = await async_save_build_config(self.project_dir, self.config)
+        success = await async_save_build_config(self.project_dir, self.config)  # type: ignore[arg-type]
         if not success:
             self.app.notify("配置保存失败", severity="error")
         return success
@@ -225,7 +225,9 @@ class InstallerConfigScreen(Screen):
         if event.select.id == "platform-select":
             if event.value == "macos":
                 self.app.notify("macOS 打包功能开发中...", severity="warning")
-                event.select.value = "windows"
+                # 重置为 windows（需要类型断言）
+                select_widget = event.select
+                select_widget.value = "windows"  # type: ignore[arg-type]
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """处理按钮点击"""

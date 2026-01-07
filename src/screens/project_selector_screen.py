@@ -127,7 +127,7 @@ class ProjectSelectorScreen(Screen):
         parent = self.selected_path.parent
         if parent != self.selected_path:
             parent_item = ListItem(Label("📁 .."), classes="parent-dir")
-            parent_item.is_parent = True
+            parent_item.is_parent = True  # type: ignore[attr-defined]
             all_items.append(parent_item)
 
         # 添加目录项（限制数量）
@@ -137,13 +137,13 @@ class ProjectSelectorScreen(Screen):
                 icon = "📁"
                 label = Label(f"{icon} {item.name}")
                 list_item = ListItem(label, classes="directory")
-                list_item.item_path = item
+                list_item.item_path = item  # type: ignore[attr-defined]
                 all_items.append(list_item)
             else:
                 icon = "📄"
                 label = Label(f"{icon} {item.name}")
                 list_item = ListItem(label, classes="file")
-                list_item.item_path = item
+                list_item.item_path = item  # type: ignore[attr-defined]
                 all_items.append(list_item)
 
         # 添加到 ListView
@@ -153,18 +153,18 @@ class ProjectSelectorScreen(Screen):
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """列表项选择事件"""
         # 检查是否是父目录项
-        if hasattr(event.item, "is_parent") and event.item.is_parent:
+        if hasattr(event.item, "is_parent") and event.item.is_parent:  # type: ignore[attr-defined]
             # 点击 ".." 返回上一级
             parent_path = self.selected_path.parent
             if parent_path != self.selected_path:
                 self.selected_path = parent_path
                 self.update_selected_path()
                 self.refresh_directory_list_async()
-        elif hasattr(event.item, "item_path"):
-            item_path = event.item.item_path
-            if item_path.is_dir():
+        elif hasattr(event.item, "item_path"):  # type: ignore[attr-defined]
+            item_path = event.item.item_path  # type: ignore[attr-defined]
+            if item_path.is_dir():  # type: ignore[attr-defined]
                 # 点击文件夹，进入该目录
-                self.selected_path = item_path
+                self.selected_path = item_path  # type: ignore[assignment]
                 self.update_selected_path()
                 self.refresh_directory_list_async()
             # 文件不做处理
@@ -215,7 +215,7 @@ class ProjectSelectorScreen(Screen):
             return
 
         # 保存选中的项目路径到 app
-        self.app.project_dir = self.selected_path
+        self.app.project_dir = self.selected_path  # type: ignore[assignment]
 
         # 跳转到模式选择屏幕
         from src.screens.mode_selector_screen import ModeSelectorScreen

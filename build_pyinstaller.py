@@ -38,7 +38,6 @@ def build():
     os_type = platform.system()
     is_windows = os_type == "Windows"
     is_macos = os_type == "Darwin"
-    is_linux = os_type == "Linux"
 
     # 获取终端宽度
     width = shutil.get_terminal_size().columns
