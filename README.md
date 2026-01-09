@@ -110,7 +110,6 @@ uv run build_pyinstaller.py
 | `F8` | textual-light 主题 |
 | `ESC` | 返回上一步 |
 | `Ctrl+C` | 退出程序 |
-| `Ctrl+S` | 保存配置 |
 
 
 
@@ -141,12 +140,18 @@ git commit -m "build_1: 更新"  # 触发 Nuitka 构建
 PyBuild-Generate/
 ├── main.py                   # 程序入口
 ├── build_*.py                # 构建脚本
+├── pyproject.toml            # 项目配置与依赖
 ├── src/
-│   ├── app.py                # 主应用
-│   ├── screens/              # 12个界面屏幕
+│   ├── __main__.py           # 模块入口
+│   ├── __init__.py           # 包初始化
+│   ├── app.py                # PyBuildTUI 主应用类
+│   ├── screens/              # 12个 TUI 界面屏幕
+│   ├── widgets/              # 可复用 UI 组件
 │   └── utils/                # 工具模块
 ├── .github/workflows/        # CI/CD 配置
 └── assets/                   # 资源文件
+    ├── img/                  # 截图
+    └── pyfiglet/fonts/       # ASCII 字体
 ```
 
 ## 依赖
@@ -154,7 +159,7 @@ PyBuild-Generate/
 ### 运行本工具需要
 
 - Python >= 3.12
-- textual >= 6.12.0
+- textual >= 7.0.0
 - pyfiglet >= 1.0.4
 - loguru >= 0.7.3
 - pyyaml >= 6.0
