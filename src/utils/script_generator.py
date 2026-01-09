@@ -57,7 +57,7 @@ def _generate_script_header(config: Dict[str, Any], tool_name: str) -> List[str]
 
 
 def _generate_config_section(
-    config: Dict[str, Any], extra_vars: List[str] = None
+    config: Dict[str, Any], extra_vars: List[str] | None = None
 ) -> List[str]:
     """生成配置常量部分"""
     lines = [
@@ -112,7 +112,7 @@ def _generate_build_execution() -> List[str]:
     ]
 
 
-def _generate_build_result(cleanup_code: List[str] = None) -> List[str]:
+def _generate_build_result(cleanup_code: List[str] | None = None) -> List[str]:
     """生成构建结果处理部分"""
     lines = [
         "    try:",
@@ -377,7 +377,7 @@ def generate_pyinstaller_script(config: Dict[str, Any], project_dir: Path) -> st
     lines.extend(_generate_script_header(config, "PyInstaller"))
 
     # PyInstaller 特有的额外变量
-    extra_vars = []
+    extra_vars: List[str] = []
     if config.get("splash_image"):
         extra_vars.append(f"SPLASH_IMAGE = '{config['splash_image']}'")
     lines.extend(_generate_config_section(config, extra_vars if extra_vars else None))

@@ -90,7 +90,7 @@ CompileConfigScreen, InstallerConfigScreen {
     dock: bottom;
     layout: horizontal;
     align: center middle;
-    margin-top: 1;
+    padding: 1 0;
 }
 
 Button {

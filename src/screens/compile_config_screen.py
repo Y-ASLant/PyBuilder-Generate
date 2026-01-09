@@ -32,7 +32,7 @@ class CompileConfigScreen(Screen):
     def __init__(self):
         super().__init__()
         self.config = {}
-        self.project_dir: Path = None
+        self.project_dir: Path | None = None
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
@@ -121,7 +121,7 @@ class CompileConfigScreen(Screen):
 
     async def on_mount(self) -> None:
         """挂载时加载配置"""
-        self.project_dir = self.app.project_dir
+        self.project_dir = self.app.project_dir  # type: ignore[assignment]
         if not self.project_dir:
             self.app.notify("未选择项目目录", severity="error")
             self.app.pop_screen()
@@ -160,7 +160,7 @@ class CompileConfigScreen(Screen):
     def _save_config_from_ui(self) -> None:
         """从UI保存配置（只更新编译配置字段，保留打包选项）"""
         # 先加载现有配置，保留打包选项字段
-        existing_config = load_build_config(self.project_dir)
+        existing_config = load_build_config(self.project_dir)  # type: ignore[arg-type]
 
         # 只更新编译配置相关的字段
         existing_config["project_name"] = self.query_one(
@@ -206,7 +206,7 @@ class CompileConfigScreen(Screen):
         self._save_config_from_ui()
 
         # 验证配置
-        is_valid, error_msg = validate_build_config(self.config, self.project_dir)
+        is_valid, error_msg = validate_build_config(self.config, self.project_dir)  # type: ignore[arg-type]
         if not is_valid:
             self.app.notify(f"配置验证失败: {error_msg}", severity="error")
             return False
@@ -215,7 +215,7 @@ class CompileConfigScreen(Screen):
 
     async def _async_save_config(self) -> bool:
         """异步保存配置到文件"""
-        success = await async_save_build_config(self.project_dir, self.config)
+        success = await async_save_build_config(self.project_dir, self.config)  # type: ignore[arg-type]
         if not success:
             self.app.notify("配置保存失败", severity="error")
         return success

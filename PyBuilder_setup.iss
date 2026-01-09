@@ -22,7 +22,7 @@ CreateAppDir=yes
 
 ; 输出设置
 OutputDir=dist
-OutputBaseFilename={#MyAppName}_V{#MyAppVersion}_Setup
+OutputBaseFilename={#MyAppName}_V{#MyAppVersion}_Setup-Beta
 SetupIconFile=assets/app.ico
 
 ; 卸载设置
@@ -60,7 +60,7 @@ Name: "chinesesimp"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "build\PyBuilder\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "build\PyBuilder.dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

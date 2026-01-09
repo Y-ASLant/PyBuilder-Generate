@@ -40,7 +40,7 @@ class InstallerOptionsScreen(Screen):
     def __init__(self):
         super().__init__()
         self.config = {}
-        self.project_dir: Path = None
+        self.project_dir: Path | None = None
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
@@ -72,7 +72,7 @@ class InstallerOptionsScreen(Screen):
 
     def on_mount(self) -> None:
         """挂载时加载配置"""
-        self.project_dir = self.app.project_dir
+        self.project_dir = self.app.project_dir  # type: ignore[assignment]
         if not self.project_dir:
             self.app.notify("未选择项目目录", severity="error")
             self.app.pop_screen()
@@ -83,7 +83,7 @@ class InstallerOptionsScreen(Screen):
     async def _load_and_create_fields(self) -> None:
         """加载配置并创建字段"""
         try:
-            self.config = await async_load_build_config(self.project_dir)
+            self.config = await async_load_build_config(self.project_dir)  # type: ignore[arg-type]
             self._create_options_fields()
         except Exception as e:
             self._show_load_error(str(e))
@@ -226,31 +226,32 @@ class InstallerOptionsScreen(Screen):
         )
 
         # ===== 高级选项标签页 =====
+        # 自定义后缀
+        advanced_row0 = self._create_input_widget(
+            "custom-suffix-input",
+            "安装包自定义后缀 (可留空):",
+            "例如: @ASLant (生成 xxx_setup@ASLant.exe)",
+            self.config.get("installer_custom_suffix", ""),
+        )
+
         # 关联文件类型
-        advanced_row1 = Horizontal(
-            self._create_input_widget(
-                "file-assoc-input",
-                "关联文件类型:",
-                "例如: .txt,.log,.cfg",
-                self.config.get("installer_file_assoc", ""),
-            ),
-            Vertical(classes="field-group"),  # 占位
-            classes="inputs-row",
+        advanced_row1 = self._create_input_widget(
+            "file-assoc-input",
+            "关联文件类型:",
+            "例如: .txt,.log,.cfg",
+            self.config.get("installer_file_assoc", ""),
         )
 
         # 额外快捷方式
-        advanced_row2 = Horizontal(
-            self._create_input_widget(
-                "extra-shortcuts-input",
-                "额外快捷方式 (名称;exe文件):",
-                "例如: Word;word.exe Excel;excel.exe",
-                self.config.get("installer_extra_shortcuts", ""),
-            ),
-            Vertical(classes="field-group"),  # 占位
-            classes="inputs-row",
+        advanced_row2 = self._create_input_widget(
+            "extra-shortcuts-input",
+            "额外快捷方式 (名称;exe文件):",
+            "例如: Word;word.exe Excel;excel.exe",
+            self.config.get("installer_extra_shortcuts", ""),
         )
 
         advanced_content = Vertical(
+            advanced_row0,
             advanced_row1,
             advanced_row2,
             classes="basic-options-content",
@@ -351,7 +352,7 @@ class InstallerOptionsScreen(Screen):
 
     def _save_config_from_ui(self) -> None:
         """从UI保存配置"""
-        existing_config = load_build_config(self.project_dir)
+        existing_config = load_build_config(self.project_dir)  # type: ignore[arg-type]
 
         # 基本选项
         existing_config["installer_desktop_icon"] = self.query_one(
@@ -377,6 +378,9 @@ class InstallerOptionsScreen(Screen):
         ).value
 
         # 高级选项
+        existing_config["installer_custom_suffix"] = self.query_one(
+            "#custom-suffix-input", Input
+        ).value.strip()
         existing_config["installer_file_assoc"] = self.query_one(
             "#file-assoc-input", Input
         ).value.strip()
@@ -419,7 +423,7 @@ class InstallerOptionsScreen(Screen):
 
     async def _async_save_config(self) -> bool:
         """异步保存配置到文件"""
-        success = await async_save_build_config(self.project_dir, self.config)
+        success = await async_save_build_config(self.project_dir, self.config)  # type: ignore[arg-type]
         if not success:
             self.app.notify("配置保存失败", severity="error")
         return success
@@ -464,7 +468,7 @@ class InstallerOptionsScreen(Screen):
         from src.screens.installer_generation_screen import InstallerGenerationScreen
 
         result = await self.app.push_screen_wait(
-            InstallerGenerationScreen(self.config, self.project_dir)
+            InstallerGenerationScreen(self.config, self.project_dir)  # type: ignore[arg-type]
         )
 
         if result and result[0]:

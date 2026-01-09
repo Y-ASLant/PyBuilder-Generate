@@ -21,7 +21,7 @@ class PluginSelectorScreen(Screen):
         Binding("enter", "confirm", "确认"),
     ]
 
-    def __init__(self, selected_plugins: list[str] = None):
+    def __init__(self, selected_plugins: list[str] | None = None):
         super().__init__()
         self.selected_plugins = selected_plugins or []
 

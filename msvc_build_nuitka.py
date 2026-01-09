@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PyBuilder - PyInstaller 构建脚本
+PyBuilder - Nuitka 构建脚本
 版本: 1.0.0
 """
 
@@ -26,18 +26,19 @@ class Color:
 # 构建配置
 PROJECT_NAME = "PyBuilder"
 VERSION = "1.0.0"
-COMPANY_NAME = "ASLant"
 ENTRY_FILE = "main.py"
+COMPANY_NAME = "ASLant"
 ICON_FILE = "assets/app.ico"
 OUTPUT_DIR = "build"
 
 
 def build():
-    """执行 PyInstaller 构建"""
+    """执行 Nuitka 构建"""
     # 获取平台信息
     os_type = platform.system()
     is_windows = os_type == "Windows"
     is_macos = os_type == "Darwin"
+    is_linux = os_type == "Linux"
 
     # 获取终端宽度
     width = shutil.get_terminal_size().columns
@@ -49,38 +50,60 @@ def build():
     )
     print(separator)
 
-    # 添加数据文件（根据操作系统使用不同分隔符）
-    data_separator = ";" if is_windows else ":"
-
-    # 构建 PyInstaller 命令
+    # 构建 Nuitka 命令
     cmd = [
         sys.executable,
         "-m",
-        "PyInstaller",
-        f"--distpath={OUTPUT_DIR}",
-        "--workpath=build/temp",
-        f"--name={PROJECT_NAME}",
-        "--contents-directory=lib",
-        "--clean",
-        "--noconfirm",
-        "--log-level=WARN",
+        "nuitka",
+        "--mode=standalone",
+        f"--output-dir={OUTPUT_DIR}",
+        f"--output-filename={PROJECT_NAME}",
+        f"--output-folder-name={PROJECT_NAME}.dist",
+        "--lto=auto",
+        "--jobs=16",
+        "--python-flag=-O",
+        "--quiet",
+        "--remove-output",
+        "--include-package=pygments",
+        f"--include-data-dir={os.path.join('src', 'style')}={os.path.join('src', 'style')}",
+        f"--include-data-dir={'docs'}={'docs'}",
     ]
 
-    # 图标文件（仅Windows和macOS平台）
-    if is_windows or is_macos:
-        cmd.append(f"--icon={ICON_FILE}")
+    # Windows图标（仅Windows平台）
+    if is_windows:
+        cmd.append(f"--windows-icon-from-ico={ICON_FILE}")
 
-    # 收集子模块
-    cmd.append("--collect-submodules=textual")
+    # Windows公司名称（仅Windows平台）
+    if is_windows:
+        cmd.append(f"--windows-company-name={COMPANY_NAME}")
 
-    # 添加数据文件
-    cmd.append(
-        f"--add-data={os.path.join('src', 'style')}{data_separator}{os.path.join('src', 'style')}"
-    )
-    cmd.append(
-        f"--add-data={os.path.join('assets', 'pyfiglet')}{data_separator}{'pyfiglet'}"
-    )
-    cmd.append(f"--add-data={'docs'}{data_separator}{'docs'}")
+    # Windows版本信息（仅Windows平台）
+    if is_windows:
+        cmd.append(f"--windows-product-version={VERSION}")
+        cmd.append(f"--windows-file-version={VERSION}")
+
+    # 根据平台选择编译器
+    compiler = "msvc"
+    if is_windows:
+        # Windows平台编译器
+        if compiler == "clang":
+            cmd.append("--clang")
+        elif compiler == "mingw64":
+            cmd.append("--mingw64")
+        elif compiler == "clang-cl":
+            cmd.append("--clang-cl")
+        # msvc是默认，不需要参数
+    elif is_linux:
+        # Linux平台编译器
+        if compiler == "clang":
+            cmd.append("--clang")
+        # gcc是默认，不需要参数
+    elif is_macos:
+        # macOS平台编译器
+        if compiler != "clang":
+            # clang是macOS默认，其他需要指定
+            if compiler == "gcc":
+                print(f"{Color.YELLOW}注意: macOS推荐使用Clang{Color.RESET}")
 
     # 添加入口文件
     cmd.append(ENTRY_FILE)
@@ -99,11 +122,6 @@ def build():
         minutes = int(elapsed_time // 60)
         seconds = int(elapsed_time % 60)
         print(f"{Color.GREEN}{Color.BOLD}Build successful!{Color.RESET}")
-        # 清理 .spec 文件
-        spec_file = f"{PROJECT_NAME}.spec"
-        if os.path.exists(spec_file):
-            os.remove(spec_file)
-            print(f"{Color.GRAY}Cleaned: {spec_file}{Color.RESET}")
         abs_output = os.path.abspath(OUTPUT_DIR)
         print(f"{Color.GREEN}Output: {abs_output}{Color.RESET}")
         if minutes > 0:

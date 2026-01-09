@@ -3,12 +3,17 @@
 """
 
 import asyncio
+from pathlib import Path
+from typing import Literal
 from textual.app import App
 from textual.binding import Binding
 from textual import events
 
 from src.screens.welcome_screen import WelcomeScreen
 from src.utils import load_config, save_config
+
+
+SeverityLevel = Literal["information", "warning", "error"]
 
 
 class PyBuildTUI(App):
@@ -55,8 +60,8 @@ class PyBuildTUI(App):
         super().__init__()
 
         # 项目配置
-        self.project_dir = None  # 选中的项目目录
-        self.build_mode = None  # 构建模式: simple, full, expert
+        self.project_dir: Path | None = None  # 选中的项目目录
+        self.build_mode: str | None = None  # 构建模式: simple, full, expert
 
         # 加载配置
         self.config = load_config()
@@ -73,7 +78,7 @@ class PyBuildTUI(App):
         message: str,
         *,
         title: str = "",
-        severity: str = "information",
+        severity: SeverityLevel = "information",
         timeout: float | None = None,
         markup: bool = True,
     ) -> None:
