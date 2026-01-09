@@ -2,31 +2,12 @@
 欢迎屏幕
 """
 
-import pyfiglet
 from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Link
-
-
-def generate_logo(text="PyBuilder", font="big"):
-    """使用 pyfiglet 生成 ASCII Logo"""
-    try:
-        return pyfiglet.figlet_format(text, font=font)
-    except Exception:
-        # PyInstaller 打包后 pyfiglet.fonts 模块缺失时的降级方案
-        return f"\n  {text}  \n"
-
-
-# 动态生成 ASCII Logo - 延迟生成避免打包时导入错误
-# 可选字体（从小到大）：
-# "small" - 最小字体
-# "standard" - 标准字体
-# "big" - 大字体
-# "banner" - 横幅样式
-# "block" - 块状字体（较大）
-# "3-d" - 3D效果（最大）
+from textual.widgets import Button, Link, Static
+from src.widgets.figlet_widget import FigletWidget
 
 
 class WelcomeScreen(Screen):
@@ -36,11 +17,8 @@ class WelcomeScreen(Screen):
 
     def compose(self) -> ComposeResult:
         """创建欢迎界面组件"""
-        # 运行时生成 LOGO，避免模块导入阶段错误
-        logo = generate_logo("PyBuilder", "big")
-
         with Container(id="welcome-container"):
-            yield Static(logo, id="logo")
+            yield FigletWidget("PyBuilder", id="logo", font="big")
             with Container(id="title"):
                 yield Link(
                     "Github Star.", url="https://github.com/Y-ASLant/PyBuilder-Generate"
