@@ -52,6 +52,9 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     license_file = config.get("installer_license", "")
     readme_file = config.get("installer_readme", "")
 
+    # 自定义后缀（用于安装包文件名）
+    custom_suffix = config.get("installer_custom_suffix", "").strip()
+
     # AppId（不带花括号存储）
     app_id = config.get("installer_appid", "").strip().strip("{}")
     if not app_id:
@@ -99,7 +102,9 @@ def generate_inno_setup_script(config: Dict[str, Any], project_dir: Path) -> str
     # 输出设置
     lines.append("; 输出设置")
     lines.append(f"OutputDir={output_dir}")
-    lines.append("OutputBaseFilename={#MyAppName}_V{#MyAppVersion}_Setup")
+    # 构建输出文件名：支持自定义后缀
+    output_filename = f"{{#MyAppName}}_V{{#MyAppVersion}}_Setup{custom_suffix}"
+    lines.append(f"OutputBaseFilename={output_filename}")
     if icon_file:
         lines.append(f"SetupIconFile={icon_file}")
     lines.append("")

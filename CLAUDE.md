@@ -13,6 +13,18 @@ PyBuild-Generate 是一个基于 Textual TUI 框架的跨平台 Python 编译脚
 uv sync
 ```
 
+### 代码质量检查
+```bash
+# 类型检查
+ty check
+
+# 代码规范检查
+ruff check
+
+# 自动修复代码规范问题
+ruff check --fix
+```
+
 ### 运行程序
 ```bash
 # 推荐
@@ -35,18 +47,28 @@ uv run build_pyinstaller.py
 
 ### CI/CD 触发
 提交信息包含特定前缀时自动触发 GitHub Actions 构建：
-- `build_0:` 或 `build:` - PyInstaller 构建
-- `build_1:` - Nuitka 构建
+- `build:` - 同时触发 PyInstaller 和 Nuitka 构建
+- `build_0:` - 仅 PyInstaller 构建
+- `build_1:` - 仅 Nuitka 构建
+
+**示例**:
+```bash
+git commit -m "build: 发布新版本"        # 同时构建
+git commit -m "build_0: 修复界面问题"    # 仅 PyInstaller
+git commit -m "build_1: 性能优化"        # 仅 Nuitka
+```
+
+构建产物在 GitHub Actions → Artifacts 下载，保留 7 天。
 
 ## 架构设计
 
 ### 应用架构
 - **入口点**: `main.py` → `src/__main__.py` → `src/app.py`
 - **应用类**: `PyBuildTUI` 继承自 `textual.app.App`，管理屏幕导航、主题切换和配置持久化
-- **屏幕系统**: 9 个独立屏幕模块（见 `src/screens/`），每个屏幕处理特定功能步骤
+- **屏幕系统**: 12 个独立屏幕模块（见 `src/screens/`），每个屏幕处理特定功能步骤
 
 ### 屏幕流程
-1. `WelcomeScreen` - 欢迎/选择功能模式
+1. `WelcomeScreen` - 欢迎/选择功能模式（生成构建脚本/生成安装包脚本）
 2. `ProjectSelectorScreen` - 选择项目目录
 3. `ModeSelectorScreen` - 选择构建模式（simple/full/expert）
 4. `CompilerSelectorScreen` - 选择 PyInstaller 或 Nuitka
@@ -54,7 +76,14 @@ uv run build_pyinstaller.py
 6. `PackageOptionsScreen` - 配置数据文件、导入等高级选项
 7. `PluginSelectorScreen` - 选择 Nuitka 插件
 8. `InstallerConfigScreen` / `InstallerOptionsScreen` - 配置安装包（Inno Setup）
-9. `GenerationScreen` - 生成最终脚本
+9. `InstallerGenerationScreen` - 生成安装包脚本
+10. `GenerationScreen` - 生成最终脚本
+11. `HelpScreen` - 帮助屏幕
+
+**屏幕导航模式**：
+- 使用 `self.app.push_screen()` 进入下一屏幕
+- 使用 `self.app.pop_screen()` 返回上一屏幕
+- ESC 键绑定为 `app.pop_screen()`，统一返回行为
 
 ### 核心工具模块
 
@@ -74,6 +103,12 @@ uv run build_pyinstaller.py
 
 **`src/utils/config.py`**
 - 管理应用级配置 (`config.yaml`)：主题、终端尺寸限制
+- `load_config()` / `save_config()` - 配置的加载和保存
+
+**`src/widgets/option_builders.py`**
+- UI 组件工厂函数：`create_switch_widget()`, `create_input_widget()`, `create_button_row()`
+- `build_nuitka_options()` / `build_pyinstaller_options()` - 构建标签页组件
+- 可复用的 UI 布局生成器，减少重复代码
 
 ### 主题系统
 应用支持 8 种主题，通过 F1-F8 快捷键切换：
@@ -87,6 +122,14 @@ uv run build_pyinstaller.py
 - F8: textual-light
 
 主题选择会持久化到 `config.yaml`。
+
+### 快捷键
+| 快捷键 | 功能 |
+|--------|------|
+| `F1-F8` | 切换主题 |
+| `ESC` | 返回上一步 |
+| `Ctrl+C` | 退出程序 |
+| `Ctrl+S` | 保存配置 |
 
 ### 跨平台路径处理
 生成的构建脚本使用 `os.path.join()` 处理路径，确保跨平台兼容性。对于数据文件的源/目标分隔符：
@@ -111,8 +154,23 @@ PyBuild-Generate/
 ├── build_*.py                # 本项目的构建脚本
 ├── src/
 │   ├── __main__.py           # 模块入口
+│   ├── __init__.py           # 包初始化（定义 __version__, __author__, __repo__）
 │   ├── app.py                # PyBuildTUI 主应用类
-│   ├── screens/              # TUI 屏幕模块（9个）
+│   ├── screens/              # TUI 屏幕模块（12个）
+│   │   ├── welcome_screen.py
+│   │   ├── project_selector_screen.py
+│   │   ├── mode_selector_screen.py
+│   │   ├── compiler_selector_screen.py
+│   │   ├── compile_config_screen.py
+│   │   ├── package_options_screen.py
+│   │   ├── plugin_selector_screen.py
+│   │   ├── installer_config_screen.py
+│   │   ├── installer_options_screen.py
+│   │   ├── installer_generation_screen.py
+│   │   ├── generation_screen.py
+│   │   └── help_screen.py
+│   ├── widgets/              # 可复用 UI 组件
+│   │   └── option_builders.py  # UI 组件工厂函数
 │   └── utils/                # 工具模块
 │       ├── build_config.py   # 构建配置管理
 │       ├── script_generator.py  # 构建脚本生成
@@ -126,6 +184,12 @@ PyBuild-Generate/
 
 ## 开发注意事项
 
+### 代码组织原则
+- **模块化**：每个屏幕模块职责单一，不超过 600 行
+- **可复用组件**：通用 UI 组件抽取到 `src/widgets/option_builders.py`
+- **配置驱动**：所有构建参数通过 `DEFAULT_BUILD_CONFIG` ��一定义
+- **异步操作**：配置加载/保存使用异步函数避免阻塞 UI
+
 ### 添加新的构建参数
 1. 更新 `DEFAULT_BUILD_CONFIG` in `src/utils/build_config.py`
 2. 在 `script_generator.py` 中对应生成函数添加参数处理
@@ -136,6 +200,14 @@ PyBuild-Generate/
 2. 在 `src/screens/__init__.py` 中导出
 3. 使用 `self.app.push_screen()` 或 `self.app.pop_screen()` 导航
 
+### 数据共享模式
+屏幕间共享数据通过 `self.app` 属性：
+- `self.app.project_dir` - 当前选中的项目目录
+- `self.app.build_mode` - 构建模式（simple/full/expert）
+- `self.app.config` - 应用级配置字典（主题、终端尺寸限制）
+
+**注意**: `build_config`（项目构建配置）存储在项目目录的 `build_config.yaml` 中，通过 `load_build_config()` / `save_build_config()` 函数操作，不作为 `self.app` 属性。
+
 ### 配置文件格式
 - `config.yaml` - 应用级配置（键: 值）
 - `build_config.yaml` - 项目级配置，支持注释、列表（用 `- ` 前缀）
@@ -143,3 +215,31 @@ PyBuild-Generate/
 ### Python 版本要求
 - 运行本工具: Python >= 3.12
 - 生成的脚本: Python >= 3.6（推荐 3.8+），使用 f-string 语法
+
+## 调试和测试
+
+### 本地测试生成的脚本
+生成脚本后，可以在目标项目中运行：
+```bash
+# Windows
+cd path\to\target\project
+python build_nuitka.py
+
+# Linux/macOS
+cd /path/to/target/project
+python build_nuitka.py
+```
+
+### 验证配置加载
+检查 `build_config.yaml` 是否正确生成：
+```bash
+# Windows
+type build_config.yaml
+
+# Linux/macOS
+cat build_config.yaml
+
+# 使用本工具重新加载
+uv run main.py
+# 选择项目目录 → 查看配置是否回显正确
+```

@@ -22,7 +22,7 @@ CreateAppDir=yes
 
 ; 输出设置
 OutputDir=dist
-OutputBaseFilename={#MyAppName}_V{#MyAppVersion}_Setup
+OutputBaseFilename={#MyAppName}_V{#MyAppVersion}_Setup-Beta
 SetupIconFile=assets/app.ico
 
 ; 卸载设置

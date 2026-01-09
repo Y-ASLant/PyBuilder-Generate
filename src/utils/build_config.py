@@ -305,6 +305,7 @@ def save_build_config(project_dir: Path, config: Dict[str, Any]) -> bool:
             ("installer_privileges", "安装权限"),
             ("installer_compression", "压缩方式"),
             ("installer_path_scope", "PATH作用域"),
+            ("installer_custom_suffix", "安装包自定义后缀"),
             ("installer_file_assoc", "关联文件类型"),
             ("installer_extra_shortcuts", "额外快捷方式"),
         ]

@@ -226,31 +226,32 @@ class InstallerOptionsScreen(Screen):
         )
 
         # ===== 高级选项标签页 =====
+        # 自定义后缀
+        advanced_row0 = self._create_input_widget(
+            "custom-suffix-input",
+            "安装包自定义后缀 (可留空):",
+            "例如: @ASLant (生成 xxx_setup@ASLant.exe)",
+            self.config.get("installer_custom_suffix", ""),
+        )
+
         # 关联文件类型
-        advanced_row1 = Horizontal(
-            self._create_input_widget(
-                "file-assoc-input",
-                "关联文件类型:",
-                "例如: .txt,.log,.cfg",
-                self.config.get("installer_file_assoc", ""),
-            ),
-            Vertical(classes="field-group"),  # 占位
-            classes="inputs-row",
+        advanced_row1 = self._create_input_widget(
+            "file-assoc-input",
+            "关联文件类型:",
+            "例如: .txt,.log,.cfg",
+            self.config.get("installer_file_assoc", ""),
         )
 
         # 额外快捷方式
-        advanced_row2 = Horizontal(
-            self._create_input_widget(
-                "extra-shortcuts-input",
-                "额外快捷方式 (名称;exe文件):",
-                "例如: Word;word.exe Excel;excel.exe",
-                self.config.get("installer_extra_shortcuts", ""),
-            ),
-            Vertical(classes="field-group"),  # 占位
-            classes="inputs-row",
+        advanced_row2 = self._create_input_widget(
+            "extra-shortcuts-input",
+            "额外快捷方式 (名称;exe文件):",
+            "例如: Word;word.exe Excel;excel.exe",
+            self.config.get("installer_extra_shortcuts", ""),
         )
 
         advanced_content = Vertical(
+            advanced_row0,
             advanced_row1,
             advanced_row2,
             classes="basic-options-content",
@@ -377,6 +378,9 @@ class InstallerOptionsScreen(Screen):
         ).value
 
         # 高级选项
+        existing_config["installer_custom_suffix"] = self.query_one(
+            "#custom-suffix-input", Input
+        ).value.strip()
         existing_config["installer_file_assoc"] = self.query_one(
             "#file-assoc-input", Input
         ).value.strip()
