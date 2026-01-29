@@ -3,43 +3,26 @@
 用于配置 PyInstaller 和 Nuitka 的编译选项
 """
 
-import asyncio
 from pathlib import Path
 from textual.app import ComposeResult
-from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button, Input, Select, Label
-from textual.binding import Binding
 
-from src.utils import (
-    load_build_config,
-    async_load_build_config,
-    async_save_build_config,
-    validate_build_config,
-)
+from src.screens.base_config_screen import BaseConfigScreen
+from src.utils import load_build_config
 
 
-class CompileConfigScreen(Screen):
+class CompileConfigScreen(BaseConfigScreen):
     """编译配置屏幕"""
 
     CSS_PATH = Path(__file__).parent.parent / "style" / "compile_config_screen.tcss"
-
-    BINDINGS = [
-        Binding("escape", "back", "返回"),
-        Binding("ctrl+s", "save", "保存"),
-    ]
-
-    def __init__(self):
-        super().__init__()
-        self.config = {}
-        self.project_dir: Path | None = None
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
         with Container(id="config-container"):
             yield Static("编译配置", id="screen-title")
 
-            # 显示项目信息
+            # 显示项目信息（compose 时 project_dir 尚未初始化，使用 getattr）
             project_dir = getattr(self.app, "project_dir", None)
             if project_dir:
                 yield Static(f"项目: {project_dir}", id="project-info")
@@ -119,18 +102,6 @@ class CompileConfigScreen(Screen):
                 yield Button("保存配置", variant="primary", id="save-btn", flat=True)
                 yield Button("下一步", variant="success", id="next-btn", flat=True)
 
-    async def on_mount(self) -> None:
-        """挂载时加载配置"""
-        self.project_dir = self.app.project_dir  # type: ignore[assignment]
-        if not self.project_dir:
-            self.app.notify("未选择项目目录", severity="error")
-            self.app.pop_screen()
-            return
-
-        # 异步加载现有配置或使用默认配置
-        self.config = await async_load_build_config(self.project_dir)
-        self._load_config_to_ui()
-
     def _load_config_to_ui(self) -> None:
         """将配置加载到UI"""
         # 基本信息
@@ -195,43 +166,9 @@ class CompileConfigScreen(Screen):
         elif button_id == "save-btn":
             self.action_save()
         elif button_id == "next-btn":
-            await self.action_next()
+            await self._action_next()
 
-    def action_back(self) -> None:
-        """返回上一屏"""
-        self.app.pop_screen()
-
-    def _validate_and_save(self) -> bool:
-        """验证并保存配置，返回是否成功"""
-        self._save_config_from_ui()
-
-        # 验证配置
-        is_valid, error_msg = validate_build_config(self.config, self.project_dir)  # type: ignore[arg-type]
-        if not is_valid:
-            self.app.notify(f"配置验证失败: {error_msg}", severity="error")
-            return False
-
-        return True
-
-    async def _async_save_config(self) -> bool:
-        """异步保存配置到文件"""
-        success = await async_save_build_config(self.project_dir, self.config)  # type: ignore[arg-type]
-        if not success:
-            self.app.notify("配置保存失败", severity="error")
-        return success
-
-    def action_save(self) -> None:
-        """保存配置"""
-        if self._validate_and_save():
-            asyncio.create_task(self._async_save_notify())
-
-    async def _async_save_notify(self) -> None:
-        """异步保存并显示通知"""
-        success = await self._async_save_config()
-        if success:
-            self.app.notify("配置已保存", severity="information")
-
-    async def action_next(self) -> None:
+    async def _action_next(self) -> None:
         """进入下一步：打包选项配置"""
         if not self._validate_and_save():
             return

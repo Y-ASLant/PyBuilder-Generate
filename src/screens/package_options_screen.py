@@ -4,9 +4,9 @@
 """
 
 import asyncio
+import platform
 from pathlib import Path
 from textual.app import ComposeResult
-from textual.screen import Screen
 from textual.containers import Container, Horizontal
 from textual.widgets import (
     Static,
@@ -15,35 +15,21 @@ from textual.widgets import (
     Input,
     Select,
 )
-from textual.binding import Binding
 
-from src.utils import (
-    load_build_config,
-    async_load_build_config,
-    async_save_build_config,
-    validate_build_config,
-)
+from src.screens.base_config_screen import BaseConfigScreen
+from src.utils import load_build_config
 from src.widgets import build_nuitka_options, build_pyinstaller_options
 
 
-class PackageOptionsScreen(Screen):
+class PackageOptionsScreen(BaseConfigScreen):
     """打包选项配置屏幕"""
 
     CSS_PATH = Path(__file__).parent.parent / "style" / "package_options_screen.tcss"
 
-    BINDINGS = [
-        Binding("escape", "back", "返回"),
-        Binding("ctrl+s", "save", "保存"),
-    ]
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.config = {}
-        self.project_dir: Path | None = None
         self.selected_plugins: list[str] = []  # 存储选中的插件
         # 根据平台设置默认编译器
-        import platform
-
         os_type = platform.system()
         if os_type == "Windows":
             self.selected_compiler = "msvc"
@@ -82,12 +68,9 @@ class PackageOptionsScreen(Screen):
                     "生成脚本", variant="success", id="generate-btn", flat=True
                 )
 
-    def on_mount(self) -> None:
-        """挂载时加载配置"""
-        self.project_dir = self.app.project_dir  # type: ignore[assignment]
-        if not self.project_dir:
-            self.app.notify("未选择项目目录", severity="error")
-            self.app.pop_screen()
+    async def on_mount(self) -> None:
+        """挂载时加载配置（重写基类方法以支持异步字段创建）"""
+        if not self._init_project_dir():
             return
 
         # 使用异步加载，避免阻塞渲染
@@ -95,36 +78,47 @@ class PackageOptionsScreen(Screen):
 
     async def _load_and_create_fields(self) -> None:
         """异步加载配置并创建字段"""
+        from src.utils import async_load_build_config
+
         try:
             # 异步加载现有配置或使用默认配置
             self.config = await async_load_build_config(self.project_dir)  # type: ignore[arg-type]
 
-            # 加载插件配置
-            plugins_value = self.config.get("plugins", "")
-            if isinstance(plugins_value, str):
-                self.selected_plugins = [
-                    p.strip() for p in plugins_value.split(",") if p.strip()
-                ]
-            else:
-                self.selected_plugins = (
-                    plugins_value if isinstance(plugins_value, list) else []
-                )
+            # 加载插件和编译器配置
+            self._load_config_to_ui()
 
-            # 加载编译器配置
-            self.selected_compiler = self.config.get("compiler", "msvc")
-
-            # 根据构庻工具动态生成选项（开关值已在创庻时设置）
+            # 根据构建工具动态生成选项
             self._create_options_fields()
 
             # 初始化界面状态
-            if self.config.get("build_tool") == "nuitka":
-                self._update_no_pyi_switch_state()
-            elif self.config.get("build_tool") == "pyinstaller":
-                self._update_pyinstaller_input_states()
+            self._on_config_loaded()
 
         except Exception as e:
             # 错误处理：显示错误信息
             self._show_load_error(str(e))
+
+    def _load_config_to_ui(self) -> None:
+        """将配置加载到UI（实现基类方法）"""
+        # 加载插件配置
+        plugins_value = self.config.get("plugins", "")
+        if isinstance(plugins_value, str):
+            self.selected_plugins = [
+                p.strip() for p in plugins_value.split(",") if p.strip()
+            ]
+        else:
+            self.selected_plugins = (
+                plugins_value if isinstance(plugins_value, list) else []
+            )
+
+        # 加载编译器配置
+        self.selected_compiler = self.config.get("compiler", self.selected_compiler)
+
+    def _on_config_loaded(self) -> None:
+        """配置加载后的额外处理（重写基类方法）"""
+        if self.config.get("build_tool") == "nuitka":
+            self._update_no_pyi_switch_state()
+        elif self.config.get("build_tool") == "pyinstaller":
+            self._update_pyinstaller_input_states()
 
     def _show_load_error(self, error_msg: str) -> None:
         """显示加载错误"""
@@ -501,15 +495,15 @@ class PackageOptionsScreen(Screen):
         button_id = event.button.id
 
         if button_id == "back-btn":
-            asyncio.create_task(self.action_back())
+            asyncio.create_task(self._action_back_with_save())
         elif button_id == "save-btn":
-            asyncio.create_task(self.action_save())
+            asyncio.create_task(self.action_save_async())
         elif button_id == "generate-btn":
-            self.run_worker(self.action_generate())
+            self.run_worker(self._action_generate())
         elif button_id == "plugins-button":
-            self.run_worker(self.action_select_plugins())
+            self.run_worker(self._action_select_plugins())
         elif button_id == "compiler-button":
-            self.run_worker(self.action_select_compiler())
+            self.run_worker(self._action_select_compiler())
         elif button_id == "jobs-decrease-btn":
             self._adjust_jobs(-1)
         elif button_id == "jobs-increase-btn":
@@ -527,8 +521,8 @@ class PackageOptionsScreen(Screen):
         new_value = current_value + delta
         jobs_input.value = str(new_value)
 
-    async def action_back(self) -> None:
-        """返回上一屏"""
+    async def _action_back_with_save(self) -> None:
+        """返回上一屏（带自动保存）"""
         # 返回前自动保存配置
         try:
             self._save_config_from_ui()
@@ -538,7 +532,7 @@ class PackageOptionsScreen(Screen):
             self.app.notify(f"保存配置失败: {str(e)}", severity="error")
         self.app.pop_screen()
 
-    async def action_select_plugins(self) -> None:
+    async def _action_select_plugins(self) -> None:
         """打开插件选择界面"""
         from src.screens.plugin_selector_screen import PluginSelectorScreen
 
@@ -553,7 +547,7 @@ class PackageOptionsScreen(Screen):
             plugin_count = len(result)
             self.app.notify(f"已选择 {plugin_count} 个插件", severity="information")
 
-    async def action_select_compiler(self) -> None:
+    async def _action_select_compiler(self) -> None:
         """打开编译器选择界面"""
         from src.screens.compiler_selector_screen import CompilerSelectorScreen
 
@@ -575,38 +569,18 @@ class PackageOptionsScreen(Screen):
             compiler_name = compiler_names.get(result, result)
             self.app.notify(f"已选择编译器: {compiler_name}", severity="information")
 
-    def _validate_and_save(self) -> bool:
-        """验证配置，返回是否成功"""
-        self._save_config_from_ui()
-
-        # 验证配置
-        is_valid, error_msg = validate_build_config(self.config, self.project_dir)  # type: ignore[arg-type]
-        if not is_valid:
-            self.app.notify(f"配置验证失败: {error_msg}", severity="error")
-            return False
-
-        return True
-
-    async def _async_save_config(self) -> bool:
-        """异步保存配置到文件"""
-        success = await async_save_build_config(self.project_dir, self.config)  # type: ignore[arg-type]
-        if not success:
-            self.app.notify("配置保存失败", severity="error")
-        return success
-
-    async def action_save(self) -> None:
-        """保存配置"""
+    async def action_save_async(self) -> None:
+        """异步保存配置（重写基类方法以添加冲突检查）"""
         # 保存前检查冲突
         if self.config.get("build_tool") == "pyinstaller":
             self._check_collect_conflicts()
 
         if self._validate_and_save():
-            self._save_config_from_ui()
             success = await self._async_save_config()
             if success:
                 self.app.notify("配置已保存", severity="information")
 
-    async def action_generate(self) -> None:
+    async def _action_generate(self) -> None:
         """生成编译脚本"""
         if not self._validate_and_save():
             return
