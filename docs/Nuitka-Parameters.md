@@ -1,7 +1,7 @@
 # Nuitka 编译参数完整列表
 
 > 基于 Nuitka 2.8+ 版本
-> 最后更新：2024年12月
+> 最后更新：2026年1月
 
 ---
 
@@ -9,28 +9,42 @@
 
 - ✅ **已添加** - 项目已支持的参数
 - 🔧 **可添加** - 官方支持但项目尚未实现的参数
+- ⚠️ **已弃用** - 仍可使用但即将触发警告，建议迁移
 - 📦 **商业版** - 需要 Nuitka Commercial 才能使用
 
 ---
 
 ## 基础编译模式
 
-### ✅ --standalone
+### ✅ --mode=MODE（推荐）
 **状态**：已添加  
-**说明**：创建独立可执行文件，包含所有依赖  
-**使用场景**：发布应用给没有 Python 环境的用户  
-**项目实现**：在打包选项中配置
+**说明**：设置编译模式（Nuitka 2.0+ 推荐方式）  
+**可选值**：
+- `accelerated`：加速模式（生成 .pyd/.so）
+- `standalone`：独立目录模式
+- `onefile`：单文件模式
+- `app` / `app-dist`：macOS 应用包
+- `module` / `package`：模块/包编译
 
-### ✅ --onefile
-**状态**：已添加  
+**项目实现**：自动从 standalone/onefile 配置推导，或直接指定 mode
+
+### ⚠️ --standalone（已弃用）
+**状态**：已弃用（Nuitka 2.8+）  
+**说明**：创建独立可执行文件，包含所有依赖  
+**迁移指南**：使用 `--mode=standalone` 替代  
+**注意**：此参数即将开始触发警告，项目已自动转换为 `--mode`
+
+### ⚠️ --onefile（已弃用）
+**状态**：已弃用（Nuitka 2.8+）  
 **说明**：将所有内容打包到单个可执行文件  
-**使用场景**：需要单文件分发的应用  
-**项目实现**：在打包选项中配置
+**迁移指南**：使用 `--mode=onefile` 替代  
+**注意**：此参数即将开始触发警告，项目已自动转换为 `--mode`
 
 ### 🔧 --module
 **状态**：可添加  
 **说明**：编译为 Python 扩展模块（.pyd/.so）  
 **使用场景**：加速关键模块，保持 Python 导入方式  
+**迁移指南**：建议使用 `--mode=module`  
 **建议优先级**：中
 
 ---
@@ -43,11 +57,11 @@
 **默认值**：当前目录  
 **项目实现**：build_config.yaml 中的 output_dir
 
-### 🔧 --output-filename=NAME
-**状态**：可添加  
+### ✅ --output-filename=NAME
+**状态**：已添加  
 **说明**：自定义输出文件名  
 **使用场景**：控制最终可执行文件的名称  
-**建议优先级**：高
+**项目实现**：project_name 配置
 
 ### ✅ --remove-output
 **状态**：已添加  
@@ -131,14 +145,8 @@
 
 ## 控制台与窗口
 
-### ✅ --disable-console
+### ✅ --windows-console-mode=MODE（推荐）
 **状态**：已添加  
-**说明**：禁用控制台窗口（GUI 应用）  
-**平台**：Windows  
-**项目实现**：通过 show_console 反向控制
-
-### 🔧 --windows-console-mode=MODE
-**状态**：可添加  
 **说明**：精细控制 Windows 控制台行为  
 **可选值**：
 - `force`：强制显示（默认）
@@ -146,7 +154,14 @@
 - `attach`：附加到现有控制台
 - `hide`：创建但隐藏
 
-**建议优先级**：高
+**项目实现**：通过 show_console 配置（false 时使用 `disable`）
+
+### ⚠️ --disable-console（已弃用）
+**状态**：已弃用  
+**说明**：禁用控制台窗口（GUI 应用）  
+**平台**：Windows  
+**迁移指南**：使用 `--windows-console-mode=disable` 替代  
+**注意**：项目已自动使用新参数
 
 ---
 
@@ -203,18 +218,19 @@
 
 ## 数据文件
 
-### 🔧 --include-data-files=SRC=DST
-**状态**：可添加  
+### ✅ --include-data-files=SRC=DST
+**状态**：已添加  
 **说明**：包含特定数据文件  
 **格式**：`source_path=dest_path`  
 **示例**：`--include-data-files=config.json=config.json`  
-**建议优先级**：高
+**项目实现**：include_data_files 配置
 
-### 🔧 --include-data-dir=DIRECTORY
-**状态**：可添加  
+### ✅ --include-data-dir=SRC=DST
+**状态**：已添加  
 **说明**：包含整个数据目录  
-**示例**：`--include-data-dir=assets/`  
-**建议优先级**：高
+**格式**：`source_dir=dest_dir`  
+**示例**：`--include-data-dir=assets/=assets/`  
+**项目实现**：include_data_dirs 配置
 
 ### 🔧 --include-package-data=PACKAGE
 **状态**：可添加  
@@ -232,27 +248,27 @@
 
 ## 模块控制
 
-### 🔧 --include-module=MODULE
-**状态**：可添加  
+### ✅ --include-module=MODULE
+**状态**：已添加  
 **说明**：强制包含特定模块  
 **使用场景**：动态导入的模块  
-**建议优先级**：高
+**项目实现**：include_modules 配置
 
-### 🔧 --include-package=PACKAGE
-**状态**：可添加  
+### ✅ --include-package=PACKAGE
+**状态**：已添加  
 **说明**：包含整个包及其子模块  
-**建议优先级**：高
+**项目实现**：include_packages 配置
 
-### 🔧 --nofollow-import-to=MODULE
-**状态**：可添加  
+### ✅ --nofollow-import-to=MODULE
+**状态**：已添加  
 **说明**：不跟踪特定模块的导入  
 **使用场景**：排除可选依赖  
-**建议优先级**：中
+**项目实现**：nofollow_imports 配置
 
-### ✅ --nofollow-imports
-**状态**：部分支持  
-**说明**：通过 exclude_packages 实现类似功能  
-**项目实现**：exclude_packages 列表
+### ✅ --follow-imports
+**状态**：已添加  
+**说明**：跟踪所有导入（默认启用）  
+**项目实现**：follow_imports 配置
 
 ---
 
@@ -462,25 +478,21 @@
 ## 推荐的下一步添加
 
 ### 优先级：高
-1. ✅ `--output-filename` - 自定义输出名称
-2. ✅ `--include-data-files` - 数据文件包含
-3. ✅ `--include-data-dir` - 目录包含
-4. ✅ `--include-module` - 模块包含
-5. ✅ `--windows-console-mode` - 精细控制台控制
-6. ✅ `--macos-create-app-bundle` - macOS 应用支持
-7. ✅ `--report` - 编译报告生成
+1. 🔧 `--macos-create-app-bundle` - macOS 应用支持
+2. 🔧 `--report` - 编译报告生成
+3. 🔧 `--include-package-data` - 包数据文件
+4. 🔧 `--gcc` - GCC 编译器支持
 
 ### 优先级：中
-1. ✅ `--include-package` - 包含完整包
-2. ✅ `--static-libpython` - 静态链接
-3. ✅ `--windows-product-name` - 产品信息
-4. ✅ `--macos-sign-identity` - macOS 签名
-5. ✅ `--verbose` - 详细日志
+1. 🔧 `--static-libpython` - 静态链接
+2. 🔧 `--windows-product-name` - 产品信息
+3. 🔧 `--macos-sign-identity` - macOS 签名
+4. 🔧 `--verbose` - 详细日志
 
 ### 优先级：低
-1. ✅ `--show-modules` - 模块列表
-2. ✅ `--show-scons` - 构建命令
-3. ✅ `--plugin-list` - 插件列表
+1. 🔧 `--show-modules` - 模块列表
+2. 🔧 `--show-scons` - 构建命令
+3. 🔧 `--plugin-list` - 插件列表
 
 ---
 
