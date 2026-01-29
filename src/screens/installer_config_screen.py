@@ -6,32 +6,17 @@
 import asyncio
 from pathlib import Path
 from textual.app import ComposeResult
-from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button, Input, Label, Select
-from textual.binding import Binding
 
-from src.utils import (
-    load_build_config,
-    async_load_build_config,
-    async_save_build_config,
-)
+from src.screens.base_config_screen import BaseConfigScreen
+from src.utils import load_build_config
 
 
-class InstallerConfigScreen(Screen):
+class InstallerConfigScreen(BaseConfigScreen):
     """安装包配置屏幕 - 通用信息"""
 
     CSS_PATH = Path(__file__).parent.parent / "style" / "compile_config_screen.tcss"
-
-    BINDINGS = [
-        Binding("escape", "back", "返回"),
-        Binding("ctrl+s", "save", "保存"),
-    ]
-
-    def __init__(self):
-        super().__init__()
-        self.config = {}
-        self.project_dir: Path | None = None
 
     def compose(self) -> ComposeResult:
         """创建界面组件"""
@@ -119,17 +104,6 @@ class InstallerConfigScreen(Screen):
                 yield Button("保存配置", variant="primary", id="save-btn", flat=True)
                 yield Button("下一步", variant="success", id="next-btn", flat=True)
 
-    async def on_mount(self) -> None:
-        """挂载时加载配置"""
-        self.project_dir = self.app.project_dir  # type: ignore[assignment]
-        if not self.project_dir:
-            self.app.notify("未选择项目目录", severity="error")
-            self.app.pop_screen()
-            return
-
-        self.config = await async_load_build_config(self.project_dir)
-        self._load_config_to_ui()
-
     def _load_config_to_ui(self) -> None:
         """将配置加载到UI"""
         # 从已有配置或编译配置中获取默认值
@@ -191,7 +165,7 @@ class InstallerConfigScreen(Screen):
         self.config = existing_config
 
     def _validate_config(self) -> tuple[bool, str]:
-        """验证配置"""
+        """验证安装包配置（重写基类方法）"""
         if not self.config.get("installer_app_name"):
             return False, "请输入应用名称"
         if not self.config.get("installer_version"):
@@ -201,24 +175,6 @@ class InstallerConfigScreen(Screen):
         if not self.config.get("installer_source_dir"):
             return False, "请输入源文件目录"
         return True, ""
-
-    def _validate_and_save(self) -> bool:
-        """验证配置"""
-        self._save_config_from_ui()
-
-        is_valid, error_msg = self._validate_config()
-        if not is_valid:
-            self.app.notify(f"配置验证失败: {error_msg}", severity="error")
-            return False
-
-        return True
-
-    async def _async_save_config(self) -> bool:
-        """异步保存配置到文件"""
-        success = await async_save_build_config(self.project_dir, self.config)  # type: ignore[arg-type]
-        if not success:
-            self.app.notify("配置保存失败", severity="error")
-        return success
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """处理平台选择变化"""
@@ -236,23 +192,11 @@ class InstallerConfigScreen(Screen):
         if button_id == "back-btn":
             self.action_back()
         elif button_id == "save-btn":
-            asyncio.create_task(self.action_save())
+            asyncio.create_task(self.action_save_async())
         elif button_id == "next-btn":
-            asyncio.create_task(self.action_next())
+            asyncio.create_task(self._action_next())
 
-    def action_back(self) -> None:
-        """返回上一屏"""
-        self.app.pop_screen()
-
-    async def action_save(self) -> None:
-        """保存配置"""
-        if self._validate_and_save():
-            self._save_config_from_ui()
-            success = await self._async_save_config()
-            if success:
-                self.app.notify("配置已保存", severity="information")
-
-    async def action_next(self) -> None:
+    async def _action_next(self) -> None:
         """进入下一步：平台专有选项"""
         if not self._validate_and_save():
             return

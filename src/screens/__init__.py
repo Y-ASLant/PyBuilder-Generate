@@ -2,6 +2,7 @@
 屏幕模块
 """
 
+from src.screens.base_config_screen import BaseConfigScreen
 from src.screens.welcome_screen import WelcomeScreen
 from src.screens.project_selector_screen import ProjectSelectorScreen
 from src.screens.mode_selector_screen import ModeSelectorScreen
@@ -16,6 +17,7 @@ from src.screens.generation_screen import GenerationScreen
 from src.screens.help_screen import HelpScreen
 
 __all__ = [
+    "BaseConfigScreen",
     "WelcomeScreen",
     "ProjectSelectorScreen",
     "ModeSelectorScreen",

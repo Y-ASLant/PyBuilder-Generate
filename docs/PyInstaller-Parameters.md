@@ -1,7 +1,7 @@
 # PyInstaller 编译参数完整列表
 
-> 基于 PyInstaller 6.17.0 版本
-> 最后更新：2024年12月
+> 基于 PyInstaller 6.18.0 版本
+> 最后更新：2026年1月
 
 ---
 
@@ -9,7 +9,19 @@
 
 - ✅ **已添加** - 项目已支持的参数
 - 🔧 **可添加** - 官方支持但项目尚未实现的参数
+- ❌ **已移除** - 已从 PyInstaller 中移除的参数
+- ⚠️ **即将弃用** - v7.0 中将被移除或阻止的功能
 - **特定场景** - 仅在特定场景下使用
+
+---
+
+## ⚠️ 即将弃用警告（PyInstaller v7.0）
+
+以下行为将在 PyInstaller 7.0 中被阻止：
+1. **onefile + macOS .app bundles**：onefile 模式与 macOS 应用包的组合将被阻止
+2. **提升权限运行**：使用 sudo 或管理员权限运行 PyInstaller 将被阻止
+3. **site-packages 路径**：将 `site-packages` 目录添加到 `pathex`/`--paths` 将被阻止
+4. **`-m` 简写**：`--manifest` 的 `-m` 简写将被移除
 
 ---
 
@@ -358,15 +370,15 @@
 **说明**：允许远程桌面 UAC 提升  
 **项目实现**：可通过 win_manifest 实现
 
-### 🔧 --win-private-assemblies
-**状态**：可添加  
-**说明**：使用私有程序集  
-**建议优先级**：低
+### ❌ --win-private-assemblies（已移除）
+**状态**：已移除（PyInstaller 6.0）  
+**说明**：WinSxS 程序集支持已在 PyInstaller 6.0 中移除  
+**注意**：此参数不再有效，请勿使用
 
-### 🔧 --win-no-prefer-redirects
-**状态**：可添加  
-**说明**：不优先使用重定向程序集  
-**建议优先级**：低
+### ❌ --win-no-prefer-redirects（已移除）
+**状态**：已移除（PyInstaller 6.0）  
+**说明**：WinSxS 程序集支持已在 PyInstaller 6.0 中移除  
+**注意**：此参数不再有效，请勿使用
 
 ---
 

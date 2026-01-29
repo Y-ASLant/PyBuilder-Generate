@@ -153,18 +153,18 @@ class ProjectSelectorScreen(Screen):
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """列表项选择事件"""
         # 检查是否是父目录项
-        if hasattr(event.item, "is_parent") and event.item.is_parent:  # type: ignore[attr-defined]
+        if hasattr(event.item, "is_parent") and event.item.is_parent:
             # 点击 ".." 返回上一级
             parent_path = self.selected_path.parent
             if parent_path != self.selected_path:
                 self.selected_path = parent_path
                 self.update_selected_path()
                 self.refresh_directory_list_async()
-        elif hasattr(event.item, "item_path"):  # type: ignore[attr-defined]
-            item_path = event.item.item_path  # type: ignore[attr-defined]
-            if item_path.is_dir():  # type: ignore[attr-defined]
+        elif hasattr(event.item, "item_path"):
+            item_path = event.item.item_path
+            if isinstance(item_path, Path) and item_path.is_dir():
                 # 点击文件夹，进入该目录
-                self.selected_path = item_path  # type: ignore[assignment]
+                self.selected_path = item_path
                 self.update_selected_path()
                 self.refresh_directory_list_async()
             # 文件不做处理
