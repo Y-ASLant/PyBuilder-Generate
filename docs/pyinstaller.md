@@ -1,6 +1,6 @@
 # PyInstaller 参数完整指南
 
-> 基于 PyInstaller 6.0+ 版本
+> 基于 PyInstaller 6.18.0 版本
 > 标注说明：✅ 已实现 | 部分实现 | ❌ 未实现
 
 ---

@@ -159,12 +159,12 @@ PyBuild-Generate/
 ### 运行本工具需要
 
 - Python >= 3.12
-- textual >= 7.0.0
+- textual >= 7.4.0
 - pyfiglet >= 1.0.4
 - loguru >= 0.7.3
-- pyyaml >= 6.0
-- nuitka >= 2.8.9
-- pyinstaller >= 6.17.0
+- pyyaml >= 6.0.3
+- nuitka >= 2.8.10
+- pyinstaller >= 6.18.0
 
 ### 打包目标项目支持
 
